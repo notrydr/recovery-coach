@@ -536,6 +536,7 @@ input[type=range]::-webkit-slider-thumb {
       <input class="token-inp" id="s-rt" value="daa95999322a4d06567cfa54ffaaaa8c915491ff">
       <button class="btn btn-primary" style="margin-top:12px;" onclick="connectStrava()">connect strava</button>
       <button class="btn btn-ghost" onclick="testStrava()">test connection</button>
+      <div id="oauth-status" style="margin-top:8px;display:none;"></div>
     </div>
 
     <div class="section-label">hevy</div>
@@ -857,19 +858,7 @@ function deepInsight(){
 }
 
 // ─── RUNS ─────────────────────────────────────────────────────────
-async function getStravaToken(){
-  const cid=document.getElementById('s-cid').value;
-  const cs=document.getElementById('s-cs').value;
-  const rt=document.getElementById('s-rt').value;
-  if(!cid||!cs||!rt) return null;
-  if(S.stravaToken&&Date.now()/1000<S.stravaTokenExpiry-60) return S.stravaToken;
-  try{
-    const r=await fetch('https://www.strava.com/api/v3/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:cid,client_secret:cs,grant_type:'refresh_token',refresh_token:rt})});
-    const d=await r.json();
-    if(d.access_token){ S.stravaToken=d.access_token; S.stravaTokenExpiry=d.expires_at; S.stravaConnected=true; saveS(); return d.access_token; }
-  }catch(e){}
-  return null;
-}
+
 
 async function loadStravaRuns(){
   document.getElementById('strava-loading').style.display='flex';
@@ -944,8 +933,60 @@ function renderRunSplit(){
     </div>`).join('');
 }
 
-async function connectStrava(){ S.stravaToken=null; S.stravaTokenExpiry=0; saveS(); showPage('runs',document.querySelectorAll('.nav-btn')[2]); }
-async function testStrava(){ const t=await getStravaToken(); document.getElementById('sv-dot').className='sdot '+(t?'sdot-green':'sdot-amber'); document.getElementById('sv-text').textContent=t?'Connected — token refreshed':'Connection failed'; }
+function connectStrava(){
+  const cid=document.getElementById('s-cid').value||'243814';
+  const redirect=encodeURIComponent('https://recovery-coach-one.vercel.app/');
+  const url=`https://www.strava.com/oauth/authorize?client_id=${cid}&response_type=code&redirect_uri=${redirect}&approval_prompt=force&scope=read,activity:read`;
+  window.location.href=url;
+}
+
+async function exchangeCode(code){
+  const cid=document.getElementById('s-cid').value||'243814';
+  const cs=document.getElementById('s-cs').value||'19f3bb53cea8cf2aed8c2f2c8b173c5091a97d8e';
+  const statusEl=document.getElementById('oauth-status');
+  statusEl.style.display='block';
+  statusEl.innerHTML='<div class="alert alert-amber"><div class="spinner"></div> Connecting to Strava...</div>';
+  try{
+    const res=await fetch('https://www.strava.com/api/v3/oauth/token',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({client_id:cid,client_secret:cs,code:code,grant_type:'authorization_code'})
+    });
+    const data=await res.json();
+    if(data.access_token){
+      S.stravaToken=data.access_token;
+      S.stravaTokenExpiry=data.expires_at;
+      S.stravaRefreshToken=data.refresh_token;
+      S.stravaConnected=true;
+      saveS();
+      document.getElementById('sv-dot').className='sdot sdot-green';
+      document.getElementById('sv-text').textContent='Connected successfully!';
+      statusEl.innerHTML='<div class="alert alert-green"><i class="ti ti-check"></i> Strava connected! Go to the Runs tab.</div>';
+      // clean url
+      window.history.replaceState({},'','/');
+    } else {
+      statusEl.innerHTML='<div class="alert alert-red">Connection failed — try again.</div>';
+    }
+  }catch(e){
+    statusEl.innerHTML='<div class="alert alert-red">Error connecting. Check credentials.</div>';
+  }
+}
+
+async function getStravaToken(){
+  const cid=document.getElementById('s-cid').value||'243814';
+  const cs=document.getElementById('s-cs').value||'19f3bb53cea8cf2aed8c2f2c8b173c5091a97d8e';
+  const rt=S.stravaRefreshToken||(document.getElementById('s-rt').value);
+  if(!rt) return null;
+  if(S.stravaToken&&Date.now()/1000<S.stravaTokenExpiry-60) return S.stravaToken;
+  try{
+    const r=await fetch('https://www.strava.com/api/v3/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:cid,client_secret:cs,grant_type:'refresh_token',refresh_token:rt})});
+    const d=await r.json();
+    if(d.access_token){ S.stravaToken=d.access_token; S.stravaTokenExpiry=d.expires_at; if(d.refresh_token) S.stravaRefreshToken=d.refresh_token; S.stravaConnected=true; saveS(); return d.access_token; }
+  }catch(e){}
+  return null;
+}
+
+async function testStrava(){ const t=await getStravaToken(); document.getElementById('sv-dot').className='sdot '+(t?'sdot-green':'sdot-amber'); document.getElementById('sv-text').textContent=t?'Connected — token refreshed':'Connection failed — try reconnecting'; }
 function logRun(){ S.manualRuns.push({date:today(),dist:parseFloat(document.querySelector('#page-runs input[type=range]').value),zone:document.getElementById('rl-zone').value}); saveS(); renderWeekBar(); alert('Run logged!'); }
 
 // ─── INSIGHTS PAGE ────────────────────────────────────────────────
@@ -1021,6 +1062,13 @@ function saveNutrition(){
 // ─── INIT ─────────────────────────────────────────────────────────
 function init(){
   loadS();
+  // Handle Strava OAuth callback
+  const urlParams=new URLSearchParams(window.location.search);
+  const oauthCode=urlParams.get('code');
+  if(oauthCode){
+    showPage('settings',document.querySelectorAll('.nav-btn')[4]);
+    setTimeout(()=>exchangeCode(oauthCode),500);
+  }
   document.getElementById('date-display').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
   renderMuscleGrid(); renderSoreness(); renderYoga();
   renderWeekBar(); renderPRs(); renderHevySessions();
