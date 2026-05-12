@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Recovery Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --bg2: #111111;
+  --bg3: #181818;
+  --border: #242424;
+  --border2: #2e2e2e;
+  --text: #f0ede8;
+  --text2: #888;
+  --text3: #555;
+  --accent: #c8f060;
+  --accent2: #a8d040;
+  --red: #ff5a5a;
+  --amber: #ffb23f;
+  --blue: #5ab4ff;
+  --teal: #3dffd0;
+  --font-head: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --r: 12px;
+  --r-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--bg); }
+body { font-family: var(--font-body); background: var(--bg); color: var(--text); min-height: 100dvh; overflow-x: hidden; }
+
+/* GRAIN OVERLAY */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9999; opacity: 0.4;
+}
+
+/* LAYOUT */
+.shell { max-width: 420px; margin: 0 auto; padding: 0 0 100px; min-height: 100dvh; }
+
+/* HEADER */
+.header {
+  padding: 24px 20px 16px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  background: linear-gradient(to bottom, var(--bg) 80%, transparent);
+}
+.header-left h1 { font-family: var(--font-head); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.header-left .date { font-size: 12px; color: var(--text3); font-family: var(--font-mono); margin-top: 2px; }
+.score-pill {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 99px; padding: 6px 14px;
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 12px; color: var(--text2);
+}
+.score-pill .val { font-size: 18px; font-weight: 500; color: var(--accent); font-family: var(--font-head); }
+
+/* NAV */
+.nav {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 420px;
+  background: rgba(10,10,10,0.92); backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex; z-index: 200; padding: 8px 4px 20px;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 4px; border: none; background: transparent;
+  font-family: var(--font-body); font-size: 10px; color: var(--text3);
+  cursor: pointer; transition: color 0.15s; border-radius: var(--r-sm);
+}
+.nav-btn i { font-size: 20px; transition: color 0.15s; }
+.nav-btn.active { color: var(--accent); }
+.nav-btn.active i { color: var(--accent); }
+
+/* PAGES */
+.page { display: none; padding: 0 16px; }
+.page.active { display: block; }
+
+/* CARDS */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px; margin-bottom: 10px;
+  position: relative; overflow: hidden;
+}
+.card-accent { border-color: var(--accent); }
+.card-label {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text3);
+  letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.section-label {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 0 4px; margin: 20px 0 8px;
+}
+
+/* SCORE RING */
+.score-wrap { display: flex; align-items: center; gap: 16px; }
+.ring { position: relative; width: 88px; height: 88px; flex-shrink: 0; }
+.ring svg { transform: rotate(-90deg); }
+.ring-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring-num { font-family: var(--font-head); font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+.ring-sub { font-size: 10px; color: var(--text3); font-family: var(--font-mono); }
+.score-info { flex: 1; }
+.score-status { font-family: var(--font-head); font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+.score-detail { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+/* METRICS */
+.metric-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+.metric { background: var(--bg3); border-radius: var(--r-sm); padding: 10px 8px; text-align: center; }
+.metric-val { font-family: var(--font-head); font-size: 20px; font-weight: 700; color: var(--text); }
+.metric-lab { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 2px; }
+
+/* MUSCLE TRACKER */
+.muscle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.muscle-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: var(--r-sm);
+  border: 1px solid var(--border2); background: var(--bg3);
+  cursor: pointer; font-family: var(--font-body); font-size: 13px; color: var(--text2);
+  transition: all 0.15s; text-align: left;
+}
+.muscle-btn .mdot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); flex-shrink: 0; transition: background 0.15s; }
+.muscle-btn .minfo { flex: 1; }
+.muscle-btn .mname { font-size: 13px; color: var(--text); font-weight: 500; }
+.muscle-btn .mdays { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 1px; }
+.muscle-btn.done { border-color: var(--accent); background: rgba(200,240,96,0.06); }
+.muscle-btn.done .mdot { background: var(--accent); }
+.muscle-btn.done .mname { color: var(--accent); }
+.muscle-btn.overdue { border-color: rgba(255,90,90,0.4); }
+.muscle-btn.overdue .mdays { color: var(--red); }
+
+/* SLIDERS */
+.slider-row { margin-bottom: 14px; }
+.slider-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 6px; font-family: var(--font-mono); }
+.slider-val { color: var(--accent); font-weight: 500; }
+input[type=range] {
+  width: 100%; -webkit-appearance: none; height: 3px;
+  background: var(--border2); border-radius: 99px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px;
+  border-radius: 50%; background: var(--accent); cursor: pointer;
+  border: 2px solid var(--bg);
+}
+
+/* BUTTONS */
+.btn {
+  width: 100%; padding: 13px; border: none; border-radius: var(--r-sm);
+  font-family: var(--font-head); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; letter-spacing: 0.01em;
+}
+.btn-primary { background: var(--accent); color: #0a0a0a; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--text2); margin-top: 6px; }
+.btn-ghost:hover { border-color: var(--text3); color: var(--text); }
+.btn-sm { padding: 8px 14px; font-size: 12px; width: auto; }
+
+/* WEEK BAR */
+.week-bar { display: flex; gap: 4px; }
+.day-col { flex: 1; text-align: center; }
+.day-lbl { font-size: 9px; color: var(--text3); font-family: var(--font-mono); margin-bottom: 4px; text-transform: uppercase; }
+.day-block { height: 36px; border-radius: 6px; background: var(--bg3); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 8px; font-family: var(--font-mono); color: var(--text3); transition: all 0.2s; }
+.day-block.lift { background: rgba(200,240,96,0.1); border-color: rgba(200,240,96,0.3); color: var(--accent); }
+.day-block.run { background: rgba(90,180,255,0.1); border-color: rgba(90,180,255,0.3); color: var(--blue); }
+.day-block.both { background: rgba(61,255,208,0.1); border-color: rgba(61,255,208,0.3); color: var(--teal); }
+.day-block.today-ring { outline: 1.5px solid var(--text2); outline-offset: 2px; }
+
+/* YOGA STREAK */
+.yoga-row { display: flex; gap: 5px; }
+.yoga-day { flex: 1; height: 32px; border-radius: 6px; background: var(--bg3); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; font-family: var(--font-mono); color: var(--text3); cursor: pointer; transition: all 0.15s; text-transform: uppercase; }
+.yoga-day.done { background: rgba(61,255,208,0.1); border-color: rgba(61,255,208,0.4); color: var(--teal); }
+.yoga-day.today-ring { outline: 1.5px solid var(--text3); outline-offset: 1px; }
+
+/* PR ROWS */
+.pr-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.pr-row:last-child { border-bottom: none; }
+.pr-name { color: var(--text2); font-size: 12px; }
+.pr-right { text-align: right; }
+.pr-val { font-family: var(--font-mono); font-size: 13px; font-weight: 500; color: var(--text); }
+.pr-date { font-size: 10px; color: var(--text3); font-family: var(--font-mono); }
+
+/* SESSION ROWS */
+.session-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.session-row:last-child { border-bottom: none; }
+.session-date { font-family: var(--font-mono); font-size: 10px; color: var(--text3); min-width: 42px; }
+.session-title { flex: 1; font-size: 13px; color: var(--text); font-weight: 500; }
+.session-dur { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
+
+/* RUN ROWS */
+.run-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.run-row:last-child { border-bottom: none; }
+.run-icon { width: 36px; height: 36px; border-radius: var(--r-sm); background: rgba(90,180,255,0.1); border: 1px solid rgba(90,180,255,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.run-icon i { font-size: 18px; color: var(--blue); }
+.run-info { flex: 1; }
+.run-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.run-meta { font-size: 11px; color: var(--text3); font-family: var(--font-mono); margin-top: 1px; }
+.run-stat { text-align: right; }
+.run-dist { font-family: var(--font-head); font-size: 14px; font-weight: 700; color: var(--blue); }
+.run-pace { font-family: var(--font-mono); font-size: 10px; color: var(--text3); }
+
+/* INSIGHT ROWS */
+.insight-row { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.insight-row:last-child { border-bottom: none; }
+.insight-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.insight-text { font-size: 13px; color: var(--text2); line-height: 1.55; flex: 1; }
+.insight-text strong { color: var(--text); font-weight: 500; }
+
+/* AI BUBBLE */
+.ai-bubble {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 4px 12px 12px 12px; padding: 14px 16px;
+  font-size: 13px; color: var(--text2); line-height: 1.6;
+}
+
+/* ALERT BANNER */
+.alert { border-radius: var(--r-sm); padding: 10px 14px; font-size: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.alert-red { background: rgba(255,90,90,0.08); border: 1px solid rgba(255,90,90,0.2); color: var(--red); }
+.alert-green { background: rgba(200,240,96,0.06); border: 1px solid rgba(200,240,96,0.2); color: var(--accent); }
+.alert-amber { background: rgba(255,178,63,0.06); border: 1px solid rgba(255,178,63,0.2); color: var(--amber); }
+
+/* RECOVERY TIMER */
+.timer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.timer-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px; }
+.timer-muscle { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.timer-bar-wrap { height: 4px; background: var(--border2); border-radius: 99px; overflow: hidden; margin-bottom: 4px; }
+.timer-bar { height: 100%; border-radius: 99px; transition: width 0.3s; }
+.timer-label { font-family: var(--font-mono); font-size: 10px; color: var(--text3); }
+
+/* RUNNING SPLIT */
+.split-day { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.split-day:last-child { border-bottom: none; }
+.split-day-name { font-family: var(--font-mono); font-size: 10px; color: var(--text3); min-width: 28px; text-transform: uppercase; padding-top: 2px; }
+.split-content { flex: 1; }
+.split-title { font-size: 13px; font-weight: 500; color: var(--text); }
+.split-detail { font-size: 12px; color: var(--text2); margin-top: 2px; line-height: 1.4; }
+.split-badge { display: inline-block; font-family: var(--font-mono); font-size: 9px; padding: 2px 7px; border-radius: 99px; margin-top: 4px; }
+.badge-z2 { background: rgba(90,180,255,0.1); color: var(--blue); border: 1px solid rgba(90,180,255,0.2); }
+.badge-z3 { background: rgba(255,178,63,0.1); color: var(--amber); border: 1px solid rgba(255,178,63,0.2); }
+.badge-lift { background: rgba(200,240,96,0.08); color: var(--accent); border: 1px solid rgba(200,240,96,0.2); }
+.badge-rest { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+.badge-yoga { background: rgba(61,255,208,0.08); color: var(--teal); border: 1px solid rgba(61,255,208,0.2); }
+
+/* WEEKLY SUMMARY */
+.summary-stat { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.summary-stat:last-child { border-bottom: none; }
+.summary-key { color: var(--text2); }
+.summary-val { font-family: var(--font-mono); font-weight: 500; color: var(--text); }
+
+/* TOKEN INPUT */
+.token-inp { width: 100%; font-family: var(--font-mono); font-size: 11px; padding: 9px 12px; border: 1px solid var(--border2); border-radius: var(--r-sm); background: var(--bg3); color: var(--text); margin-bottom: 6px; outline: none; }
+.token-inp:focus { border-color: var(--accent); }
+.inp-label { font-size: 11px; color: var(--text3); font-family: var(--font-mono); margin-bottom: 4px; margin-top: 10px; }
+
+/* STATUS */
+.status-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); padding: 6px 0; }
+.sdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.sdot-green { background: var(--accent); }
+.sdot-amber { background: var(--amber); }
+.sdot-gray { background: var(--border2); }
+.sdot-red { background: var(--red); }
+
+/* SPINNER */
+.spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* PR NEW BADGE */
+.pr-new { display: inline-block; font-family: var(--font-mono); font-size: 9px; background: rgba(200,240,96,0.12); color: var(--accent); border: 1px solid rgba(200,240,96,0.3); border-radius: 99px; padding: 1px 6px; margin-left: 6px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* NUTRITION */
+.nut-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.nut-field input { width: 100%; padding: 9px 10px; border: 1px solid var(--border2); border-radius: var(--r-sm); background: var(--bg3); color: var(--text); font-size: 13px; font-family: var(--font-mono); outline: none; }
+.nut-field input:focus { border-color: var(--accent); }
+.nut-label { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-bottom: 4px; }
+
+/* CHART AREA */
+.chart-area { height: 80px; position: relative; overflow: hidden; }
+.chart-line { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.chart-area-fill { fill: url(#chartGrad); }
+
+/* PAGE TRANSITION */
+.page { animation: fadeIn 0.15s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.divider { height: 1px; background: var(--border); margin: 10px 0; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="header">
+    <div class="header-left">
+      <h1>Recovery Coach</h1>
+      <div class="date" id="date-display">—</div>
+    </div>
+    <div class="score-pill">
+      <span class="val" id="header-score">—</span>
+      <span>/ 100</span>
+    </div>
+  </header>
+
+  <!-- TODAY -->
+  <div class="page active" id="page-dashboard">
+    <!-- LEGS ALERT -->
+    <div class="alert alert-red" id="legs-alert" style="display:none;">
+      <i class="ti ti-alert-triangle"></i>
+      <span id="legs-alert-text">Legs overdue</span>
+    </div>
+
+    <!-- SCORE -->
+    <div class="card card-accent">
+      <div class="score-wrap">
+        <div class="ring">
+          <svg width="88" height="88" viewBox="0 0 88 88">
+            <defs><linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#c8f060"/><stop offset="100%" stop-color="#3dffd0"/>
+            </linearGradient></defs>
+            <circle cx="44" cy="44" r="36" fill="none" stroke="#1e1e1e" stroke-width="8"/>
+            <circle cx="44" cy="44" r="36" fill="none" stroke="url(#ringGrad)" stroke-width="8" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="68" id="score-arc"/>
+          </svg>
+          <div class="ring-inner">
+            <div class="ring-num" id="score-num">70</div>
+            <div class="ring-sub">score</div>
+          </div>
+        </div>
+        <div class="score-info">
+          <div class="score-status" id="score-status">Good to Train</div>
+          <div class="score-detail" id="score-detail">Fill in your check-in below for a personalized recommendation.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- METRICS -->
+    <div class="metric-row">
+      <div class="metric"><div class="metric-val" id="m-sleep">—</div><div class="metric-lab">sleep</div></div>
+      <div class="metric"><div class="metric-val" id="m-energy">—</div><div class="metric-lab">energy</div></div>
+      <div class="metric"><div class="metric-val" id="m-soreness">—</div><div class="metric-lab">sore</div></div>
+      <div class="metric"><div class="metric-val" id="m-yoga">0</div><div class="metric-lab">yoga 🔥</div></div>
+    </div>
+
+    <!-- WEEK BAR -->
+    <div class="section-label">this week</div>
+    <div class="card">
+      <div class="week-bar" id="week-bar"></div>
+      <div style="display:flex;gap:14px;margin-top:10px;">
+        <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:rgba(200,240,96,0.3);border-radius:2px;display:inline-block;"></span>LIFT</span>
+        <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:rgba(90,180,255,0.3);border-radius:2px;display:inline-block;"></span>RUN</span>
+        <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:rgba(61,255,208,0.3);border-radius:2px;display:inline-block;"></span>BOTH</span>
+      </div>
+    </div>
+
+    <!-- CHECK-IN -->
+    <div class="section-label">daily check-in</div>
+    <div class="card" id="checkin-card">
+      <div id="checkin-done-state" style="display:none;">
+        <div class="alert alert-green"><i class="ti ti-check"></i> Check-in complete for today</div>
+        <button class="btn btn-ghost" onclick="resetCheckin()">update check-in</button>
+      </div>
+      <div id="checkin-form-state">
+        <div class="slider-row">
+          <div class="slider-label"><span>sleep quality</span><span class="slider-val" id="sv-sleep">7</span></div>
+          <input type="range" min="1" max="10" value="7" id="sl-sleep" oninput="document.getElementById('sv-sleep').textContent=this.value;recalcScore()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>energy level</span><span class="slider-val" id="sv-energy">7</span></div>
+          <input type="range" min="1" max="10" value="7" id="sl-energy" oninput="document.getElementById('sv-energy').textContent=this.value;recalcScore()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>overall soreness</span><span class="slider-val" id="sv-soreness">3</span></div>
+          <input type="range" min="1" max="10" value="3" id="sl-soreness" oninput="document.getElementById('sv-soreness').textContent=this.value;recalcScore()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>stress level</span><span class="slider-val" id="sv-stress">3</span></div>
+          <input type="range" min="1" max="10" value="3" id="sl-stress" oninput="document.getElementById('sv-stress').textContent=this.value;recalcScore()">
+        </div>
+        <div style="margin-bottom:14px;">
+          <div class="slider-label" style="margin-bottom:8px;"><span>yoga today?</span></div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-ghost btn-sm" id="yoga-yes" onclick="setYoga(true)" style="flex:1;">✓ yes</button>
+            <button class="btn btn-ghost btn-sm" id="yoga-no" onclick="setYoga(false)" style="flex:1;">not yet</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="submitCheckin()">save check-in</button>
+      </div>
+    </div>
+
+    <!-- AI REC -->
+    <div class="section-label">coach says</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-sparkles" style="font-size:12px;color:var(--accent);"></i> ai recommendation</div>
+      <div class="ai-bubble" id="ai-rec">Complete your check-in above to unlock your personalized recommendation.</div>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="askCoach()">ask coach for more ↗</button>
+    </div>
+
+    <!-- RECOVERY TIMER -->
+    <div class="section-label">muscle recovery timer</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-clock" style="font-size:12px;"></i> ready to train again?</div>
+      <div class="timer-grid" id="timer-grid"></div>
+    </div>
+  </div>
+
+  <!-- WORKOUTS -->
+  <div class="page" id="page-workouts">
+    <div class="alert alert-green"><i class="ti ti-check"></i> Hevy synced — 57 sessions, all PRs loaded</div>
+
+    <div class="section-label">this week</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-target" style="font-size:12px;"></i> muscle tracker — tap when done</div>
+      <div class="muscle-grid" id="muscle-grid"></div>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="resetWeek()">reset week</button>
+    </div>
+
+    <div class="section-label">muscle soreness</div>
+    <div class="card">
+      <div id="soreness-sliders"></div>
+    </div>
+
+    <div class="section-label">personal records</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-trophy" style="font-size:12px;color:var(--amber);"></i> from hevy history</div>
+      <div id="pr-list"></div>
+    </div>
+
+    <div class="section-label">recent sessions</div>
+    <div class="card">
+      <div id="hevy-sessions"></div>
+    </div>
+
+    <div class="section-label">yoga streak</div>
+    <div class="card">
+      <div class="card-label">last 7 days — tap to toggle</div>
+      <div class="yoga-row" id="yoga-row"></div>
+    </div>
+  </div>
+
+  <!-- RUNS -->
+  <div class="page" id="page-runs">
+    <div class="card" id="strava-banner">
+      <div id="strava-loading" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-family:var(--font-mono);">
+        <div class="spinner"></div> FETCHING STRAVA...
+      </div>
+      <div id="strava-ok" style="display:none;" class="status-row"><div class="sdot sdot-green"></div><span>Strava connected</span></div>
+      <div id="strava-err" style="display:none;" class="status-row"><div class="sdot sdot-amber"></div><span>Connect Strava in Settings</span></div>
+    </div>
+
+    <div class="section-label">recent runs</div>
+    <div class="card"><div id="runs-list"><div style="font-size:13px;color:var(--text3);text-align:center;padding:1rem;font-family:var(--font-mono);">LOADING...</div></div></div>
+
+    <div class="section-label">this week</div>
+    <div class="metric-row">
+      <div class="metric"><div class="metric-val" id="s-miles">—</div><div class="metric-lab">miles</div></div>
+      <div class="metric"><div class="metric-val" id="s-runs">—</div><div class="metric-lab">runs</div></div>
+      <div class="metric"><div class="metric-val" id="s-pace" style="font-size:14px;">—</div><div class="metric-lab">pace</div></div>
+      <div class="metric"><div class="metric-val" id="s-zone" style="font-size:14px;">—</div><div class="metric-lab">zone</div></div>
+    </div>
+
+    <div class="section-label">running split</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-calendar" style="font-size:12px;"></i> your personalized weekly plan</div>
+      <div id="run-split"></div>
+    </div>
+
+    <div class="section-label">log manually</div>
+    <div class="card">
+      <div class="slider-row">
+        <div class="slider-label"><span>distance (miles)</span><span class="slider-val" id="rv-dist">3.0</span></div>
+        <input type="range" min="1" max="15" value="3" step="0.5" oninput="document.getElementById('rv-dist').textContent=parseFloat(this.value).toFixed(1)">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span>zone</span><span class="slider-val" id="rv-zone">Zone 3</span></div>
+        <input type="range" min="1" max="5" value="3" step="1" id="rl-zone" oninput="document.getElementById('rv-zone').textContent='Zone '+this.value">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span>feel</span><span class="slider-val" id="rv-feel">7</span></div>
+        <input type="range" min="1" max="10" value="7" oninput="document.getElementById('rv-feel').textContent=this.value">
+      </div>
+      <button class="btn btn-primary" onclick="logRun()">log run</button>
+    </div>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div class="page" id="page-insights">
+    <div class="section-label">weekly summary</div>
+    <div class="card" id="weekly-summary-card">
+      <div class="card-label"><i class="ti ti-chart-bar" style="font-size:12px;color:var(--accent);"></i> week of <span id="week-of">—</span></div>
+      <div id="weekly-summary"></div>
+    </div>
+
+    <div class="section-label">recovery insights</div>
+    <div class="card">
+      <div id="insights-list"></div>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="deepInsight()">get full ai analysis ↗</button>
+    </div>
+
+    <div class="section-label">bench progress</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-trending-up" style="font-size:12px;color:var(--accent);"></i> bench press (barbell) — all time top sets</div>
+      <div id="bench-chart"></div>
+    </div>
+
+    <div class="section-label">nutrition</div>
+    <div class="card">
+      <div class="card-label">log today's bevel numbers</div>
+      <div class="nut-grid">
+        <div class="nut-field"><div class="nut-label">CALORIES</div><input type="number" placeholder="2400" id="nut-cal"></div>
+        <div class="nut-field"><div class="nut-label">PROTEIN (g)</div><input type="number" placeholder="180" id="nut-prot"></div>
+        <div class="nut-field"><div class="nut-label">CARBS (g)</div><input type="number" placeholder="250" id="nut-carb"></div>
+        <div class="nut-field"><div class="nut-label">FATS (g)</div><input type="number" placeholder="70" id="nut-fat"></div>
+      </div>
+      <button class="btn btn-primary" onclick="saveNutrition()">save nutrition</button>
+      <div id="nut-saved" style="display:none;" class="alert alert-green" style="margin-top:8px;"><i class="ti ti-check"></i> Saved!</div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="section-label">strava</div>
+    <div class="card">
+      <div class="status-row" style="margin-bottom:8px;">
+        <div class="sdot" id="sv-dot" style="background:var(--border2);"></div>
+        <span id="sv-text" style="font-size:12px;">Not connected</span>
+      </div>
+      <div class="inp-label" style="margin-top:0;">CLIENT ID</div>
+      <input class="token-inp" id="s-cid" value="243814">
+      <div class="inp-label">CLIENT SECRET</div>
+      <input class="token-inp" id="s-cs" value="19f3bb53cea8cf2aed8c2f2c8b173c5091a97d8e">
+      <div class="inp-label">REFRESH TOKEN</div>
+      <input class="token-inp" id="s-rt" value="daa95999322a4d06567cfa54ffaaaa8c915491ff">
+      <button class="btn btn-primary" style="margin-top:12px;" onclick="connectStrava()">connect strava</button>
+      <button class="btn btn-ghost" onclick="testStrava()">test connection</button>
+    </div>
+
+    <div class="section-label">hevy</div>
+    <div class="card">
+      <div class="status-row"><div class="sdot sdot-green"></div><span>57 sessions synced from CSV</span></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;">Re-upload your Hevy CSV export anytime to refresh PRs + history.</div>
+    </div>
+
+    <div class="section-label">bevel</div>
+    <div class="card">
+      <div class="status-row"><div class="sdot sdot-amber"></div><span>No API yet — log manually in Insights</span></div>
+    </div>
+
+    <div class="section-label">data</div>
+    <div class="card">
+      <button class="btn btn-ghost" onclick="if(confirm('Clear all saved data?')){localStorage.removeItem('rc3');location.reload();}">clear all local data</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i>Today</button>
+  <button class="nav-btn" onclick="showPage('workouts',this)"><i class="ti ti-barbell"></i>Workouts</button>
+  <button class="nav-btn" onclick="showPage('runs',this)"><i class="ti ti-run"></i>Runs</button>
+  <button class="nav-btn" onclick="showPage('insights',this)"><i class="ti ti-chart-bar"></i>Insights</button>
+  <button class="nav-btn" onclick="showPage('settings',this)"><i class="ti ti-settings"></i>Settings</button>
+</nav>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────
+const MUSCLES = [
+  {id:'legs',   label:'Legs',            daysSince:31, recoverHrs:96},
+  {id:'chest',  label:'Chest',           daysSince:3,  recoverHrs:72},
+  {id:'back',   label:'Back',            daysSince:2,  recoverHrs:72},
+  {id:'shoulders',label:'Shoulders & Arms', daysSince:1, recoverHrs:48},
+  {id:'abs',    label:'Abs',             daysSince:4,  recoverHrs:48},
+];
+
+const HEVY_SESSIONS = [
+  {date:'May 11',title:'Shoulders and Arms',dur:'1h 20m'},
+  {date:'May 10',title:'Back',dur:'1h 6m'},
+  {date:'May 09',title:'Chest',dur:'25m'},
+  {date:'May 07',title:'Abs',dur:'12m'},
+  {date:'May 07',title:'Back',dur:'51m'},
+  {date:'May 05',title:'Chest and Abs',dur:'49m'},
+  {date:'Apr 27',title:'Abs',dur:'35m'},
+  {date:'Apr 27',title:'Shoulders and Arms',dur:'1h 34m'},
+  {date:'Apr 25',title:'Quick Chest',dur:'27m'},
+  {date:'Apr 23',title:'Shoulders and Arms',dur:'1h 9m'},
+];
+
+const PRS = [
+  {name:'Bench press (barbell)',   val:'175 lbs × 1',  date:'Feb 25', isNew:false},
+  {name:'Incline bench (barbell)', val:'135 lbs × 2',  date:'May 9',  isNew:true},
+  {name:'Weighted pull up',        val:'+25 lbs × 8',  date:'May 10', isNew:true},
+  {name:'Hack squat (machine)',    val:'265 lbs × 6',  date:'Feb 24', isNew:false},
+  {name:'Seated OHP (barbell)',    val:'95 lbs × 3',   date:'Apr 27', isNew:false},
+  {name:'Triceps pushdown',        val:'70 lbs × 12',  date:'Feb 11', isNew:false},
+  {name:'Landmine row',            val:'105 lbs × 16', date:'May 10', isNew:true},
+  {name:'Calf press (machine)',    val:'265 lbs × 12', date:'Feb 24', isNew:false},
+  {name:'Leg extension (machine)', val:'130 lbs × 12', date:'Apr 11', isNew:false},
+  {name:'Lying leg curl (machine)',val:'95 lbs × 12',  date:'Apr 11', isNew:false},
+];
+
+const BENCH_HISTORY = [
+  {date:'Oct 14',w:135},{date:'Nov 2',w:145},{date:'Nov 20',w:155},
+  {date:'Dec 8',w:155},{date:'Jan 12',w:165},{date:'Feb 11',w:165},
+  {date:'Feb 25',w:175},{date:'Apr 22',w:135},{date:'Apr 25',w:135},
+  {date:'May 5',w:155},{date:'May 9',w:135},
+];
+
+const SORENESS_MUSCLES = ['chest','back','shoulders','legs','abs','calves'];
+
+const RUN_SPLIT = [
+  {day:'MON',title:'Rest / Yoga',detail:'Active recovery. 20–30 min yoga, focus on hip flexors and hamstrings.',badges:['rest','yoga']},
+  {day:'TUE',title:'Lift — Chest or Back',detail:'Heavy compound work. Keep intensity high.',badges:['lift']},
+  {day:'WED',title:'Zone 3 Run — 3 miles',detail:'Moderate-hard effort. Conversational pace at the top of your aerobic zone. Followed by 10 min yoga.',badges:['z3','yoga']},
+  {day:'THU',title:'Lift — Shoulders & Arms',detail:'Your most consistent session. Full routine.',badges:['lift']},
+  {day:'FRI',title:'Lift — Legs',detail:'Priority session. Hack squat, calf press, leg curl, leg extension. Don\'t skip.',badges:['lift']},
+  {day:'SAT',title:'Zone 2 Long Run — 4–6 miles',detail:'Easy conversational pace. Should feel sustainable for 60+ min. Build this distance by 10% each week.',badges:['z2']},
+  {day:'SUN',title:'Rest / Yoga',detail:'Full rest day. Long yoga session if possible — 30–45 min.',badges:['rest','yoga']},
+];
+
+const INSIGHTS = [
+  {color:'var(--red)',    text:'<strong>Legs: 31 days overdue.</strong> This is your biggest gap. Muscle imbalances from skipping legs will eventually limit your upper body gains. Hack squats, leg curls, and extensions this week — no excuses.'},
+  {color:'var(--accent)', text:'<strong>Weighted pull ups are at a new PR.</strong> +25 lbs × 8 on May 10. You\'re ready to try +30 lbs for lower reps — attempt it fresh at the start of your next back day.'},
+  {color:'var(--blue)',   text:'<strong>Running split tip.</strong> With 1–2 runs/week, you want 48+ hrs between your zone 3 run and leg day. Wednesday run + Friday legs is the ideal split based on your current routine.'},
+  {color:'var(--amber)',  text:'<strong>Bench goal: 185 lbs.</strong> You hit 175 × 1 in February. Get 155–165 for 3 clean reps consistently before attempting 175 again. Currently training at 135–155 — time to push.'},
+  {color:'var(--teal)',   text:'<strong>Daily yoga is your edge.</strong> With heavy compound lifts and zone 3 running, yoga is doing real CNS recovery work. Even 15–20 min counts. Keep the streak going.'},
+];
+
+// ─── STATE ────────────────────────────────────────────────────────
+let S = {
+  musclesDone:{}, soreness:{chest:2,back:2,shoulders:2,legs:2,abs:1,calves:1},
+  yogaDays:{}, checkinDone:false,
+  checkin:{sleep:7,energy:7,soreness:3,stress:3,yoga:false},
+  manualRuns:[], nutrition:{},
+  stravaToken:null, stravaTokenExpiry:0, stravaConnected:false,
+  weeklyRuns: []
+};
+
+function loadS(){ try{ const d=localStorage.getItem('rc3'); if(d) S=Object.assign(S,JSON.parse(d)); }catch(e){} }
+function saveS(){ try{ localStorage.setItem('rc3',JSON.stringify(S)); }catch(e){} }
+function today(){ return new Date().toISOString().split('T')[0]; }
+
+// ─── NAV ─────────────────────────────────────────────────────────
+function showPage(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='runs') loadStravaRuns();
+  if(id==='insights') renderInsightsPage();
+}
+
+// ─── SCORE ────────────────────────────────────────────────────────
+function recalcScore(){
+  const sl=parseInt(document.getElementById('sl-sleep').value);
+  const en=parseInt(document.getElementById('sl-energy').value);
+  const so=parseInt(document.getElementById('sl-soreness').value);
+  const st=parseInt(document.getElementById('sl-stress').value);
+  const avgSor=Object.values(S.soreness).reduce((a,b)=>a+b,0)/SORENESS_MUSCLES.length;
+  const score=Math.round((sl/10)*25+(en/10)*25+((10-so)/10)*25+((10-st)/10)*15+((10-avgSor)/10)*10);
+  document.getElementById('score-num').textContent=score;
+  document.getElementById('header-score').textContent=score;
+  const arc=document.getElementById('score-arc');
+  const offset=226-(226*score/100);
+  arc.setAttribute('stroke-dashoffset',Math.round(offset));
+  arc.setAttribute('stroke',score>=70?'url(#ringGrad)':score>=45?'var(--amber)':'var(--red)');
+  const status=score>=70?'Good to Train':score>=45?'Train Light':'Rest Day';
+  document.getElementById('score-status').textContent=status;
+  document.getElementById('m-sleep').textContent=sl;
+  document.getElementById('m-energy').textContent=en;
+  document.getElementById('m-soreness').textContent=so;
+  const due=MUSCLES.filter(m=>!S.musclesDone[m.id]).sort((a,b)=>b.daysSince-a.daysSince);
+  let detail='';
+  if(score>=70){
+    detail=due.length?`Priority today: ${due[0].label} — ${due[0].daysSince} days since last session.`:`All muscles hit this week. Consider active recovery or a deload today.`;
+  } else if(score>=45){
+    detail=`Some fatigue detected. Train at 70% intensity or focus on ${due[0]?.label||'mobility'}. Yoga tonight.`;
+  } else {
+    detail=`Rest day recommended. Prioritize 8+ hrs sleep, protein, and yoga today.`;
+  }
+  document.getElementById('score-detail').textContent=detail;
+  updateAIRec(score,due);
+}
+
+function updateAIRec(score, due){
+  const el=document.getElementById('ai-rec');
+  let rec='';
+  if(score>=70){
+    rec=due.length
+      ?`You're recovered. Top priority: ${due[0].label} (${due[0].daysSince}d overdue). ${due.length>1?`After that, ${due[1].label} is next.`:''} Aim for 0.8–1g protein per lb of bodyweight today to support muscle repair.`
+      :`All muscle groups hit this week — great work. Consider a deload or zone 2 run today to stay active without accumulating more fatigue.`;
+  } else if(score>=45){
+    rec=`Moderate fatigue. If you train, keep it light — ${due[0]?.label||'mobility'} at 70% of normal weight. Skip sets to failure today. Yoga + 8 hrs sleep tonight will restore your score tomorrow.`;
+  } else {
+    rec=`Recovery score is low. Rest is the most productive thing you can do today. Focus: sleep 8+ hrs, eat enough protein (especially before bed), do a 20 min yoga session. You'll hit harder tomorrow.`;
+  }
+  el.textContent=rec;
+}
+
+// ─── MUSCLES ─────────────────────────────────────────────────────
+function renderMuscleGrid(){
+  const el=document.getElementById('muscle-grid');
+  el.innerHTML=MUSCLES.map(m=>{
+    const done=S.musclesDone[m.id];
+    const overdue=m.daysSince>7&&!done;
+    return `<button class="muscle-btn${done?' done':''}${overdue?' overdue':''}" onclick="toggleMuscle('${m.id}')">
+      <div class="mdot"></div>
+      <div class="minfo">
+        <div class="mname">${m.label}</div>
+        <div class="mdays">${done?'done this week':m.daysSince+'d ago'}</div>
+      </div>
+    </button>`;
+  }).join('');
+}
+
+function toggleMuscle(id){
+  S.musclesDone[id]=!S.musclesDone[id];
+  const m=MUSCLES.find(x=>x.id===id);
+  if(S.musclesDone[id]) m.daysSince=0;
+  saveS(); renderMuscleGrid(); renderWeekBar(); renderRecoveryTimers();
+}
+
+function resetWeek(){ if(confirm('Reset this week\'s tracking?')){ S.musclesDone={}; MUSCLES.forEach(m=>{if(m.id==='legs')m.daysSince=31;}); saveS(); renderMuscleGrid(); } }
+
+// ─── SORENESS ────────────────────────────────────────────────────
+function renderSoreness(){
+  document.getElementById('soreness-sliders').innerHTML=SORENESS_MUSCLES.map(m=>
+    `<div class="slider-row">
+      <div class="slider-label"><span>${m}</span><span class="slider-val" id="ssv-${m}">${S.soreness[m]||1}</span></div>
+      <input type="range" min="1" max="10" value="${S.soreness[m]||1}" step="1" oninput="S.soreness['${m}']=parseInt(this.value);document.getElementById('ssv-${m}').textContent=this.value;saveS();recalcScore()">
+    </div>`).join('');
+}
+
+// ─── YOGA ─────────────────────────────────────────────────────────
+function renderYoga(){
+  const el=document.getElementById('yoga-row');
+  const days=[];
+  let streak=0;
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const key=d.toISOString().split('T')[0];
+    const lbl=['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()];
+    const done=S.yogaDays[key]; const isToday=key===today();
+    days.push(`<div class="yoga-day${done?' done':''}${isToday?' today-ring':''}" onclick="toggleYoga('${key}')">${lbl}</div>`);
+  }
+  el.innerHTML=days.join('');
+  const d2=new Date();
+  while(true){ const k=d2.toISOString().split('T')[0]; if(S.yogaDays[k]){streak++;d2.setDate(d2.getDate()-1);}else break; }
+  document.getElementById('m-yoga').textContent=streak;
+}
+
+function toggleYoga(key){ S.yogaDays[key]=!S.yogaDays[key]; saveS(); renderYoga(); }
+
+// ─── WEEK BAR ────────────────────────────────────────────────────
+function renderWeekBar(){
+  const el=document.getElementById('week-bar');
+  const now=new Date();
+  const days=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(now); d.setDate(now.getDate()-now.getDay()+i);
+    const key=d.toISOString().split('T')[0];
+    const lbl=['SU','MO','TU','WE','TH','FR','SA'][i];
+    const isToday=key===today();
+    const hevyDate=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const hasLift=HEVY_SESSIONS.some(s=>s.date===hevyDate)||Object.keys(S.musclesDone).some(k=>S.musclesDone[k]&&key===today());
+    const hasRun=S.manualRuns&&S.manualRuns.some(r=>r.date===key)||(S.weeklyRuns&&S.weeklyRuns.some(r=>r.date===key));
+    let cls='day-block'+(isToday?' today-ring':'');
+    let content='';
+    if(hasLift&&hasRun){cls+=' both';content='both';}
+    else if(hasLift){cls+=' lift';content='lift';}
+    else if(hasRun){cls+=' run';content='run';}
+    days.push(`<div class="day-col"><div class="day-lbl">${lbl}</div><div class="${cls}">${content}</div></div>`);
+  }
+  el.innerHTML=days.join('');
+}
+
+// ─── PRs ─────────────────────────────────────────────────────────
+function renderPRs(){
+  document.getElementById('pr-list').innerHTML=PRS.map(p=>
+    `<div class="pr-row">
+      <span class="pr-name">${p.name}${p.isNew?'<span class="pr-new">NEW PR</span>':''}</span>
+      <div class="pr-right"><div class="pr-val">${p.val}</div><div class="pr-date">${p.date}</div></div>
+    </div>`).join('');
+}
+
+// ─── HEVY SESSIONS ────────────────────────────────────────────────
+function renderHevySessions(){
+  document.getElementById('hevy-sessions').innerHTML=HEVY_SESSIONS.map(s=>
+    `<div class="session-row"><span class="session-date">${s.date}</span><span class="session-title">${s.title}</span><span class="session-dur">${s.dur}</span></div>`).join('');
+}
+
+// ─── RECOVERY TIMERS ─────────────────────────────────────────────
+function renderRecoveryTimers(){
+  const el=document.getElementById('timer-grid');
+  el.innerHTML=MUSCLES.map(m=>{
+    const hrsAgo=m.daysSince*24;
+    const pct=Math.min(100,Math.round((hrsAgo/m.recoverHrs)*100));
+    const ready=pct>=100;
+    const color=ready?'var(--accent)':pct>60?'var(--amber)':'var(--red)';
+    const label=ready?'READY':'~'+(Math.max(0,m.recoverHrs-hrsAgo))+'hrs left';
+    return `<div class="timer-card">
+      <div class="timer-muscle">${m.label}</div>
+      <div class="timer-bar-wrap"><div class="timer-bar" style="width:${pct}%;background:${color};"></div></div>
+      <div class="timer-label" style="color:${color};">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── LEGS ALERT ───────────────────────────────────────────────────
+function checkLegsAlert(){
+  const legsMuscle=MUSCLES.find(m=>m.id==='legs');
+  const el=document.getElementById('legs-alert');
+  if(legsMuscle.daysSince>7&&!S.musclesDone['legs']){
+    el.style.display='flex';
+    document.getElementById('legs-alert-text').textContent=`Legs: ${legsMuscle.daysSince} days since last session — highest priority today`;
+  } else {
+    el.style.display='none';
+  }
+}
+
+// ─── CHECK-IN ─────────────────────────────────────────────────────
+let yogaToday=false;
+function setYoga(v){
+  yogaToday=v;
+  document.getElementById('yoga-yes').style.borderColor=v?'var(--accent)':'var(--border2)';
+  document.getElementById('yoga-yes').style.color=v?'var(--accent)':'var(--text2)';
+  document.getElementById('yoga-no').style.borderColor=!v?'var(--accent)':'var(--border2)';
+  document.getElementById('yoga-no').style.color=!v?'var(--accent)':'var(--text2)';
+}
+
+function submitCheckin(){
+  if(yogaToday) S.yogaDays[today()]=true;
+  S.checkin={sleep:parseInt(document.getElementById('sl-sleep').value),energy:parseInt(document.getElementById('sl-energy').value),soreness:parseInt(document.getElementById('sl-soreness').value),stress:parseInt(document.getElementById('sl-stress').value),yoga:yogaToday};
+  S.checkinDone=true; saveS();
+  document.getElementById('checkin-form-state').style.display='none';
+  document.getElementById('checkin-done-state').style.display='block';
+  renderYoga(); recalcScore();
+}
+
+function resetCheckin(){
+  S.checkinDone=false;
+  document.getElementById('checkin-form-state').style.display='block';
+  document.getElementById('checkin-done-state').style.display='none';
+}
+
+// ─── ASK COACH ────────────────────────────────────────────────────
+function askCoach(){
+  const score=document.getElementById('score-num').textContent;
+  const due=MUSCLES.filter(m=>!S.musclesDone[m.id]).map(m=>`${m.label} (${m.daysSince}d)`).join(', ');
+  window.parent.postMessage({type:'send_message',message:`My recovery score is ${score}/100. Overdue muscle groups: ${due||'none'}. Sleep: ${document.getElementById('sl-sleep').value}/10, energy: ${document.getElementById('sl-energy').value}/10, soreness: ${document.getElementById('sl-soreness').value}/10. PRs: bench 175lbs, weighted pull-up +25lbs, hack squat 265lbs. What should I do today to maximize recovery and training progress? Also suggest what to eat today.`},'*');
+}
+
+function deepInsight(){
+  window.parent.postMessage({type:'send_message',message:`Analyze my full training: I lift 4-5x/week (chest, back, shoulders/arms, legs neglected for 31 days, abs). Run 1-2x/week zone 2 and zone 3. Daily yoga goal. Bench PR 175lbs, weighted pull-up +25lbs, hack squat 265lbs. Goals: bench 185lbs, build running base, fix muscle imbalances. Give me a detailed 4-week periodization plan with specific recommendations for each week.`},'*');
+}
+
+// ─── RUNS ─────────────────────────────────────────────────────────
+async function getStravaToken(){
+  const cid=document.getElementById('s-cid').value;
+  const cs=document.getElementById('s-cs').value;
+  const rt=document.getElementById('s-rt').value;
+  if(!cid||!cs||!rt) return null;
+  if(S.stravaToken&&Date.now()/1000<S.stravaTokenExpiry-60) return S.stravaToken;
+  try{
+    const r=await fetch('https://www.strava.com/api/v3/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:cid,client_secret:cs,grant_type:'refresh_token',refresh_token:rt})});
+    const d=await r.json();
+    if(d.access_token){ S.stravaToken=d.access_token; S.stravaTokenExpiry=d.expires_at; S.stravaConnected=true; saveS(); return d.access_token; }
+  }catch(e){}
+  return null;
+}
+
+async function loadStravaRuns(){
+  document.getElementById('strava-loading').style.display='flex';
+  document.getElementById('strava-ok').style.display='none';
+  document.getElementById('strava-err').style.display='none';
+  const token=await getStravaToken();
+  if(!token){
+    document.getElementById('strava-loading').style.display='none';
+    document.getElementById('strava-err').style.display='flex';
+    document.getElementById('runs-list').innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:1rem;font-family:var(--font-mono);">CONNECT STRAVA IN SETTINGS</div>';
+    return;
+  }
+  try{
+    const after=Math.floor((Date.now()-30*24*60*60*1000)/1000);
+    const r=await fetch(`https://www.strava.com/api/v3/athlete/activities?per_page=10&after=${after}`,{headers:{Authorization:`Bearer ${token}`}});
+    const acts=await r.json();
+    const runs=acts.filter(a=>a.type==='Run'||a.sport_type==='Run');
+    document.getElementById('strava-loading').style.display='none';
+    document.getElementById('strava-ok').style.display='flex';
+    document.getElementById('sv-dot').className='sdot sdot-green';
+    document.getElementById('sv-text').textContent='Connected';
+    renderRuns(runs); updateRunStats(runs);
+    S.weeklyRuns=runs.map(r=>({date:r.start_date_local.split('T')[0],dist:r.distance}));
+    saveS(); renderWeekBar();
+  }catch(e){
+    document.getElementById('strava-loading').style.display='none';
+    document.getElementById('strava-err').style.display='flex';
+    document.getElementById('runs-list').innerHTML='<div style="font-size:12px;color:var(--red);text-align:center;padding:1rem;font-family:var(--font-mono);">ERROR — CHECK CREDENTIALS</div>';
+  }
+}
+
+function renderRuns(runs){
+  const el=document.getElementById('runs-list');
+  if(!runs.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:1rem;font-family:var(--font-mono);">NO RUNS IN LAST 30 DAYS</div>';return;}
+  el.innerHTML=runs.slice(0,6).map(r=>{
+    const miles=(r.distance*0.000621371).toFixed(2);
+    const mins=Math.floor(r.moving_time/60);
+    const pr=r.moving_time/(r.distance*0.000621371);
+    const pm=Math.floor(pr/60); const ps=Math.round(pr%60).toString().padStart(2,'0');
+    const date=new Date(r.start_date_local).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return `<div class="run-row">
+      <div class="run-icon"><i class="ti ti-run"></i></div>
+      <div class="run-info"><div class="run-name">${r.name}</div><div class="run-meta">${date} · ${mins} min</div></div>
+      <div class="run-stat"><div class="run-dist">${miles} mi</div><div class="run-pace">${pm}:${ps}/mi</div></div>
+    </div>`;
+  }).join('');
+}
+
+function updateRunStats(runs){
+  const wa=Date.now()-7*24*60*60*1000;
+  const wr=runs.filter(r=>new Date(r.start_date_local)>wa);
+  const tm=wr.reduce((s,r)=>s+r.distance*0.000621371,0);
+  const tt=wr.reduce((s,r)=>s+r.moving_time,0);
+  const td=wr.reduce((s,r)=>s+r.distance*0.000621371,0);
+  document.getElementById('s-miles').textContent=tm.toFixed(1);
+  document.getElementById('s-runs').textContent=wr.length;
+  if(td>0){const pr=(tt/60)/td;const pm=Math.floor(pr);const ps=Math.round((pr%1)*60).toString().padStart(2,'0');document.getElementById('s-pace').textContent=`${pm}:${ps}`;}
+  const zones=wr.map(r=>{const p=r.moving_time/(r.distance*0.000621371);return p<420?'Z4':p<480?'Z3':p<540?'Z2':'Z1';});
+  document.getElementById('s-zone').textContent=zones[0]||'—';
+}
+
+function renderRunSplit(){
+  const badgeMap={z2:'<span class="split-badge badge-z2">ZONE 2</span>',z3:'<span class="split-badge badge-z3">ZONE 3</span>',lift:'<span class="split-badge badge-lift">LIFT</span>',rest:'<span class="split-badge badge-rest">REST</span>',yoga:'<span class="split-badge badge-yoga">YOGA</span>'};
+  document.getElementById('run-split').innerHTML=RUN_SPLIT.map(d=>
+    `<div class="split-day">
+      <div class="split-day-name">${d.day}</div>
+      <div class="split-content">
+        <div class="split-title">${d.title}</div>
+        <div class="split-detail">${d.detail}</div>
+        <div style="margin-top:5px;">${d.badges.map(b=>badgeMap[b]).join(' ')}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function connectStrava(){ S.stravaToken=null; S.stravaTokenExpiry=0; saveS(); showPage('runs',document.querySelectorAll('.nav-btn')[2]); }
+async function testStrava(){ const t=await getStravaToken(); document.getElementById('sv-dot').className='sdot '+(t?'sdot-green':'sdot-amber'); document.getElementById('sv-text').textContent=t?'Connected — token refreshed':'Connection failed'; }
+function logRun(){ S.manualRuns.push({date:today(),dist:parseFloat(document.querySelector('#page-runs input[type=range]').value),zone:document.getElementById('rl-zone').value}); saveS(); renderWeekBar(); alert('Run logged!'); }
+
+// ─── INSIGHTS PAGE ────────────────────────────────────────────────
+function renderInsightsPage(){
+  renderWeeklySummary();
+  renderInsightsList();
+  renderBenchChart();
+}
+
+function renderWeeklySummary(){
+  const now=new Date();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-now.getDay());
+  const weekEnd=new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
+  document.getElementById('week-of').textContent=weekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+weekEnd.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const musclesHit=Object.values(S.musclesDone).filter(Boolean).length;
+  const yogaDays=Object.keys(S.yogaDays).filter(k=>{const d=new Date(k);return d>=weekStart&&d<=weekEnd;}).length;
+  const avgScore=S.checkin?Math.round((S.checkin.sleep/10)*25+(S.checkin.energy/10)*25+((10-S.checkin.soreness)/10)*25+((10-S.checkin.stress)/10)*15):null;
+  document.getElementById('weekly-summary').innerHTML=`
+    <div class="summary-stat"><span class="summary-key">muscle groups hit</span><span class="summary-val">${musclesHit} / 5</span></div>
+    <div class="summary-stat"><span class="summary-key">yoga days</span><span class="summary-val">${yogaDays} / 7</span></div>
+    <div class="summary-stat"><span class="summary-key">avg recovery score</span><span class="summary-val">${avgScore||'—'} / 100</span></div>
+    <div class="summary-stat"><span class="summary-key">hevy sessions (this week)</span><span class="summary-val">3 sessions</span></div>
+    <div class="summary-stat"><span class="summary-key">legs status</span><span class="summary-val" style="color:var(--red);">31 DAYS OVERDUE</span></div>
+    <div class="summary-stat"><span class="summary-key">next priority</span><span class="summary-val" style="color:var(--accent);">Legs + Zone 3 Run</span></div>
+  `;
+}
+
+function renderInsightsList(){
+  document.getElementById('insights-list').innerHTML=INSIGHTS.map(ins=>
+    `<div class="insight-row"><div class="insight-dot" style="background:${ins.color};"></div><div class="insight-text">${ins.text}</div></div>`).join('');
+}
+
+function renderBenchChart(){
+  const el=document.getElementById('bench-chart');
+  const vals=BENCH_HISTORY.map(b=>b.w);
+  const min=Math.min(...vals)-20; const max=Math.max(...vals)+20;
+  const w=360; const h=80;
+  const pts=BENCH_HISTORY.map((b,i)=>{
+    const x=20+(i/(BENCH_HISTORY.length-1))*(w-40);
+    const y=h-10-((b.w-min)/(max-min))*(h-20);
+    return `${x},${y}`;
+  }).join(' ');
+  el.innerHTML=`
+    <svg width="100%" height="90" viewBox="0 0 ${w} ${h+10}" style="overflow:visible;">
+      <defs>
+        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#c8f060" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#c8f060" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <polyline points="${pts} ${20+(BENCH_HISTORY.length-1)/(BENCH_HISTORY.length-1)*(w-40)+20},${h} 20,${h}" fill="url(#chartGrad)"/>
+      <polyline class="chart-line" points="${pts}"/>
+      ${BENCH_HISTORY.map((b,i)=>{
+        const x=20+(i/(BENCH_HISTORY.length-1))*(w-40);
+        const y=h-10-((b.w-min)/(max-min))*(h-20);
+        return `<circle cx="${x}" cy="${y}" r="3" fill="${b.w===175?'var(--accent)':'var(--bg2)'}" stroke="var(--accent)" stroke-width="1.5"/>`;
+      }).join('')}
+      <text x="20" y="${h-10-((175-min)/(max-min))*(h-20)-6}" fill="var(--accent)" font-size="9" font-family="DM Mono, monospace">PR 175lbs</text>
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;">
+      <span>${BENCH_HISTORY[0].date}</span><span>${BENCH_HISTORY[BENCH_HISTORY.length-1].date}</span>
+    </div>`;
+}
+
+// ─── NUTRITION ────────────────────────────────────────────────────
+function saveNutrition(){
+  S.nutrition[today()]={cal:document.getElementById('nut-cal').value,prot:document.getElementById('nut-prot').value,carb:document.getElementById('nut-carb').value,fat:document.getElementById('nut-fat').value};
+  saveS();
+  const el=document.getElementById('nut-saved');
+  el.style.display='flex'; setTimeout(()=>el.style.display='none',2000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+function init(){
+  loadS();
+  document.getElementById('date-display').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
+  renderMuscleGrid(); renderSoreness(); renderYoga();
+  renderWeekBar(); renderPRs(); renderHevySessions();
+  renderRecoveryTimers(); renderRunSplit(); checkLegsAlert();
+  recalcScore();
+  if(S.checkinDone){
+    document.getElementById('checkin-form-state').style.display='none';
+    document.getElementById('checkin-done-state').style.display='block';
+    if(S.checkin){
+      document.getElementById('sl-sleep').value=S.checkin.sleep;
+      document.getElementById('sl-energy').value=S.checkin.energy;
+      document.getElementById('sl-soreness').value=S.checkin.soreness;
+      document.getElementById('sl-stress').value=S.checkin.stress;
+      ['sleep','energy','soreness','stress'].forEach(k=>document.getElementById('sv-'+k).textContent=S.checkin[k]);
+      recalcScore();
+    }
+  }
+  if(S.stravaConnected){
+    document.getElementById('sv-dot').className='sdot sdot-green';
+    document.getElementById('sv-text').textContent='Connected';
+  }
+}
+init();
+</script>
+</body>
+</html>
