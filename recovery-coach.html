@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Recovery Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root {
+  --bg:#0a0a0a; --bg2:#111111; --bg3:#181818;
+  --border:#242424; --border2:#2e2e2e;
+  --text:#f0ede8; --text2:#888; --text3:#555;
+  --accent:#c8f060; --accent2:#a8d040;
+  --red:#ff5a5a; --amber:#ffb23f; --blue:#5ab4ff; --teal:#3dffd0;
+  --font-head:'Syne',sans-serif; --font-body:'DM Sans',sans-serif; --font-mono:'DM Mono',monospace;
+  --r:12px; --r-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{background:var(--bg);}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:0.4;}
+
+.shell{max-width:420px;margin:0 auto;padding:0 0 100px;min-height:100dvh;}
+
+/* HEADER */
+.header{padding:24px 20px 12px;display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;z-index:100;background:linear-gradient(to bottom,var(--bg) 80%,transparent);}
+.header-left h1{font-family:var(--font-head);font-size:22px;font-weight:800;letter-spacing:-0.5px;}
+.header-left .date{font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;}
+.score-pill{background:var(--bg3);border:1px solid var(--border2);border-radius:99px;padding:6px 14px;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:12px;color:var(--text2);}
+.score-pill .val{font-size:18px;font-weight:500;color:var(--accent);font-family:var(--font-head);}
+
+/* NAV */
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(10,10,10,0.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index:200;padding:8px 4px 20px;}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border:none;background:transparent;font-family:var(--font-body);font-size:10px;color:var(--text3);cursor:pointer;transition:color 0.15s;border-radius:var(--r-sm);}
+.nav-btn i{font-size:20px;}
+.nav-btn.active{color:var(--accent);}
+.nav-btn.active i{color:var(--accent);}
+
+/* PAGES */
+.page{display:none;padding:0 16px;animation:fadeIn 0.15s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;position:relative;overflow:hidden;}
+.card-accent{border-color:rgba(200,240,96,0.5);}
+.card-label{font-family:var(--font-mono);font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.section-label{font-family:var(--font-mono);font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;padding:0 4px;margin:20px 0 8px;}
+
+/* SCORE RING */
+.score-wrap{display:flex;align-items:center;gap:16px;}
+.ring{position:relative;width:88px;height:88px;flex-shrink:0;}
+.ring svg{transform:rotate(-90deg);}
+.ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring-num{font-family:var(--font-head);font-size:26px;font-weight:700;color:var(--text);line-height:1;}
+.ring-sub{font-size:10px;color:var(--text3);font-family:var(--font-mono);}
+.score-info{flex:1;}
+.score-status{font-family:var(--font-head);font-size:17px;font-weight:700;margin-bottom:6px;}
+.score-detail{font-size:13px;color:var(--text2);line-height:1.5;}
+
+/* QUICK ACTIONS */
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
+.quick-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;cursor:pointer;transition:border-color 0.15s;}
+.quick-card:hover{border-color:var(--border2);}
+.quick-card.done{border-color:rgba(200,240,96,0.4);background:rgba(200,240,96,0.04);}
+.quick-label{font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px;}
+.quick-val{font-family:var(--font-head);font-size:18px;font-weight:700;color:var(--text);}
+.quick-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+
+/* METRICS */
+.metric-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;}
+.metric{background:var(--bg3);border-radius:var(--r-sm);padding:10px 8px;text-align:center;}
+.metric-val{font-family:var(--font-head);font-size:20px;font-weight:700;color:var(--text);}
+.metric-lab{font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;}
+
+/* MUSCLE TRACKER */
+.muscle-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.muscle-btn{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font-family:var(--font-body);font-size:13px;color:var(--text2);transition:all 0.15s;text-align:left;width:100%;}
+.muscle-btn .mdot{width:7px;height:7px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background 0.15s;}
+.muscle-btn .minfo{flex:1;}
+.muscle-btn .mname{font-size:13px;color:var(--text);font-weight:500;}
+.muscle-btn .mdays{font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:1px;}
+.muscle-btn.done{border-color:rgba(200,240,96,0.4);background:rgba(200,240,96,0.05);}
+.muscle-btn.done .mdot{background:var(--accent);}
+.muscle-btn.done .mname{color:var(--accent);}
+.muscle-btn.done .mdays{color:var(--accent2);}
+.muscle-btn.overdue{border-color:rgba(255,90,90,0.3);}
+.muscle-btn.overdue .mdays{color:var(--red);}
+
+/* SLIDERS */
+.slider-row{margin-bottom:14px;}
+.slider-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px;font-family:var(--font-mono);}
+.slider-val{color:var(--accent);font-weight:500;}
+input[type=range]{width:100%;-webkit-appearance:none;height:3px;background:var(--border2);border-radius:99px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg);}
+
+/* NUMBER INPUT */
+.num-inp{width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--r-sm);background:var(--bg3);color:var(--text);font-size:15px;font-family:var(--font-mono);outline:none;text-align:center;}
+.num-inp:focus{border-color:var(--accent);}
+
+/* BUTTONS */
+.btn{width:100%;padding:13px;border:none;border-radius:var(--r-sm);font-family:var(--font-head);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;letter-spacing:0.01em;}
+.btn-primary{background:var(--accent);color:#0a0a0a;}
+.btn-primary:hover{background:var(--accent2);}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);margin-top:6px;}
+.btn-ghost:hover{border-color:var(--text3);color:var(--text);}
+.btn-sm{padding:8px 14px;font-size:12px;width:auto;}
+
+/* WEEK BAR */
+.week-bar{display:flex;gap:4px;}
+.day-col{flex:1;text-align:center;}
+.day-lbl{font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px;text-transform:uppercase;}
+.day-block{height:36px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:8px;font-family:var(--font-mono);color:var(--text3);transition:all 0.2s;}
+.day-block.lift{background:rgba(200,240,96,0.1);border-color:rgba(200,240,96,0.3);color:var(--accent);}
+.day-block.run{background:rgba(90,180,255,0.1);border-color:rgba(90,180,255,0.3);color:var(--blue);}
+.day-block.both{background:rgba(61,255,208,0.1);border-color:rgba(61,255,208,0.3);color:var(--teal);}
+.day-block.today-ring{outline:1.5px solid var(--text2);outline-offset:2px;}
+
+/* YOGA */
+.yoga-row{display:flex;gap:5px;}
+.yoga-day{flex:1;height:32px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-family:var(--font-mono);color:var(--text3);cursor:pointer;transition:all 0.15s;text-transform:uppercase;}
+.yoga-day.done{background:rgba(61,255,208,0.1);border-color:rgba(61,255,208,0.4);color:var(--teal);}
+.yoga-day.today-ring{outline:1.5px solid var(--text3);outline-offset:1px;}
+
+/* PRs */
+.pr-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.pr-row:last-child{border-bottom:none;}
+.pr-name{color:var(--text2);font-size:12px;}
+.pr-right{text-align:right;}
+.pr-val{font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--text);}
+.pr-date{font-size:10px;color:var(--text3);font-family:var(--font-mono);}
+.pr-new{display:inline-block;font-family:var(--font-mono);font-size:9px;background:rgba(200,240,96,0.12);color:var(--accent);border:1px solid rgba(200,240,96,0.3);border-radius:99px;padding:1px 6px;margin-left:6px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+
+/* SESSIONS */
+.session-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.session-row:last-child{border-bottom:none;}
+.session-date{font-family:var(--font-mono);font-size:10px;color:var(--text3);min-width:42px;}
+.session-title{flex:1;font-size:13px;color:var(--text);font-weight:500;}
+.session-dur{font-family:var(--font-mono);font-size:11px;color:var(--text3);}
+
+/* RUNS */
+.run-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.run-row:last-child{border-bottom:none;}
+.run-icon{width:36px;height:36px;border-radius:var(--r-sm);background:rgba(90,180,255,0.1);border:1px solid rgba(90,180,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.run-icon i{font-size:18px;color:var(--blue);}
+.run-info{flex:1;}
+.run-name{font-size:13px;font-weight:500;color:var(--text);}
+.run-meta{font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:1px;}
+.run-stat{text-align:right;}
+.run-dist{font-family:var(--font-head);font-size:14px;font-weight:700;color:var(--blue);}
+.run-pace{font-family:var(--font-mono);font-size:10px;color:var(--text3);}
+.zone-badge{font-family:var(--font-mono);font-size:9px;padding:2px 6px;border-radius:99px;margin-top:2px;display:inline-block;}
+.z1{background:rgba(61,255,208,0.1);color:var(--teal);}
+.z2{background:rgba(90,180,255,0.1);color:var(--blue);}
+.z3{background:rgba(255,178,63,0.1);color:var(--amber);}
+.z4{background:rgba(255,90,90,0.1);color:var(--red);}
+.z5{background:rgba(255,90,90,0.15);color:var(--red);}
+
+/* INSIGHTS */
+.insight-row{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+.insight-row:last-child{border-bottom:none;}
+.insight-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.insight-text{font-size:13px;color:var(--text2);line-height:1.55;flex:1;}
+.insight-text strong{color:var(--text);font-weight:500;}
+
+/* AI BUBBLE */
+.ai-bubble{background:var(--bg3);border:1px solid var(--border2);border-radius:4px 12px 12px 12px;padding:14px 16px;font-size:13px;color:var(--text2);line-height:1.6;}
+
+/* ALERTS */
+.alert{border-radius:var(--r-sm);padding:10px 14px;font-size:12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.alert-red{background:rgba(255,90,90,0.08);border:1px solid rgba(255,90,90,0.2);color:var(--red);}
+.alert-green{background:rgba(200,240,96,0.06);border:1px solid rgba(200,240,96,0.2);color:var(--accent);}
+.alert-amber{background:rgba(255,178,63,0.06);border:1px solid rgba(255,178,63,0.2);color:var(--amber);}
+
+/* RECOVERY TIMER */
+.timer-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.timer-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;}
+.timer-muscle{font-size:12px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.timer-bar-wrap{height:4px;background:var(--border2);border-radius:99px;overflow:hidden;margin-bottom:4px;}
+.timer-bar{height:100%;border-radius:99px;transition:width 0.5s ease;}
+.timer-label{font-family:var(--font-mono);font-size:10px;}
+
+/* RUNNING SPLIT */
+.split-day{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.split-day:last-child{border-bottom:none;}
+.split-day-name{font-family:var(--font-mono);font-size:10px;color:var(--text3);min-width:28px;text-transform:uppercase;padding-top:2px;}
+.split-content{flex:1;}
+.split-title{font-size:13px;font-weight:500;color:var(--text);}
+.split-detail{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.4;}
+.split-badges{margin-top:5px;display:flex;gap:4px;flex-wrap:wrap;}
+.split-badge{display:inline-block;font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:99px;}
+.badge-z2{background:rgba(90,180,255,0.1);color:var(--blue);border:1px solid rgba(90,180,255,0.2);}
+.badge-z3{background:rgba(255,178,63,0.1);color:var(--amber);border:1px solid rgba(255,178,63,0.2);}
+.badge-lift{background:rgba(200,240,96,0.08);color:var(--accent);border:1px solid rgba(200,240,96,0.2);}
+.badge-rest{background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+.badge-yoga{background:rgba(61,255,208,0.08);color:var(--teal);border:1px solid rgba(61,255,208,0.2);}
+
+/* WEEKLY SUMMARY */
+.summary-stat{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.summary-stat:last-child{border-bottom:none;}
+.summary-key{color:var(--text2);}
+.summary-val{font-family:var(--font-mono);font-weight:500;color:var(--text);}
+
+/* TOKEN INPUT */
+.token-inp{width:100%;font-family:var(--font-mono);font-size:11px;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--r-sm);background:var(--bg3);color:var(--text);margin-bottom:6px;outline:none;}
+.token-inp:focus{border-color:var(--accent);}
+.inp-label{font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px;margin-top:10px;}
+
+/* STATUS */
+.status-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);padding:6px 0;}
+.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.sdot-green{background:var(--accent);}
+.sdot-amber{background:var(--amber);}
+.sdot-gray{background:var(--border2);}
+.sdot-red{background:var(--red);}
+
+/* SPINNER */
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* NUTRITION */
+.nut-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.nut-field input{width:100%;padding:9px 10px;border:1px solid var(--border2);border-radius:var(--r-sm);background:var(--bg3);color:var(--text);font-size:13px;font-family:var(--font-mono);outline:none;}
+.nut-field input:focus{border-color:var(--accent);}
+.nut-label{font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px;}
+.nut-bar-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;}
+.nut-bar-card{background:var(--bg3);border-radius:var(--r-sm);padding:10px;text-align:center;}
+.nut-bar-val{font-family:var(--font-head);font-size:16px;font-weight:700;}
+.nut-bar-lab{font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;}
+
+/* HRV */
+.hrv-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.hrv-field{background:var(--bg3);border-radius:var(--r-sm);padding:12px;text-align:center;}
+.hrv-label{font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px;}
+
+/* TREND CHART */
+.trend-wrap{overflow-x:auto;padding-bottom:4px;}
+
+/* EQUIPMENT BUTTONS */
+.equip-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font-family:var(--font-body);font-size:13px;color:var(--text3);transition:all 0.15s;width:100%;}
+.equip-btn.active{border-color:rgba(200,240,96,0.4);color:var(--accent);background:rgba(200,240,96,0.05);}
+
+/* INTENSITY BUTTONS */
+.intensity-btn{flex:1;padding:8px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg3);cursor:pointer;font-family:var(--font-mono);font-size:11px;color:var(--text3);transition:all 0.15s;}
+.intensity-btn.active{border-color:rgba(200,240,96,0.4);color:var(--accent);background:rgba(200,240,96,0.05);}
+
+/* QUICK REF */
+.quick-ref-item{padding:10px 0;border-bottom:1px solid var(--border);}
+.quick-ref-item:last-child{border-bottom:none;}
+.quick-ref-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.quick-ref-body{font-size:12px;color:var(--text2);line-height:1.5;}
+
+/* PROTOCOL STEPS */
+.protocol-step{padding:12px 0;border-bottom:1px solid var(--border);}
+.protocol-step:last-child{border-bottom:none;}
+.protocol-step-header{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.protocol-step-icon{width:32px;height:32px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+.protocol-step-title{font-size:13px;font-weight:500;color:var(--text);}
+.protocol-step-time{font-family:var(--font-mono);font-size:10px;color:var(--text3);margin-left:auto;}
+.protocol-step-body{font-size:12px;color:var(--text2);line-height:1.6;padding-left:42px;}
+
+
+.notif-banner{background:rgba(200,240,96,0.06);border:1px solid rgba(200,240,96,0.15);border-radius:var(--r-sm);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.notif-text{font-size:12px;color:var(--text2);}
+.notif-btn{font-family:var(--font-mono);font-size:10px;color:var(--accent);cursor:pointer;border:none;background:transparent;padding:4px 10px;border:1px solid rgba(200,240,96,0.3);border-radius:99px;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="header">
+    <div class="header-left">
+      <h1>Recovery Coach</h1>
+      <div class="date" id="date-display"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="score-pill">
+        <span class="val" id="header-score">—</span>
+        <span>/ 100</span>
+      </div>
+      <button onclick="showPage('settings',null)" style="background:transparent;border:none;cursor:pointer;color:var(--text3);font-size:20px;padding:4px;"><i class="ti ti-settings"></i></button>
+    </div>
+  </header>
+
+  <!-- ═══ TODAY ═══ -->
+  <div class="page active" id="page-dashboard">
+
+    <div id="legs-alert" style="display:none;" class="alert alert-red">
+      <i class="ti ti-alert-triangle"></i>
+      <span id="legs-alert-text"></span>
+    </div>
+
+    <!-- SCORE CARD -->
+    <div class="card card-accent">
+      <div class="score-wrap">
+        <div class="ring">
+          <svg width="88" height="88" viewBox="0 0 88 88">
+            <defs>
+              <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#c8f060"/><stop offset="100%" stop-color="#3dffd0"/>
+              </linearGradient>
+            </defs>
+            <circle cx="44" cy="44" r="36" fill="none" stroke="#1e1e1e" stroke-width="8"/>
+            <circle cx="44" cy="44" r="36" fill="none" stroke="#333" stroke-width="8" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="226" id="score-arc"/>
+          </svg>
+          <div class="ring-inner">
+            <div class="ring-num" id="score-num">—</div>
+            <div class="ring-sub">score</div>
+          </div>
+        </div>
+        <div class="score-info">
+          <div class="score-status" id="score-status">Fill in check-in</div>
+          <div class="score-detail" id="score-detail">Complete your daily check-in below to get your recovery score and recommendation.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUICK STATS -->
+    <div class="quick-grid">
+      <div class="quick-card" id="qc-sleep">
+        <div class="quick-label">SLEEP</div>
+        <div class="quick-val" id="q-sleep">—</div>
+        <div class="quick-sub">/ 10</div>
+      </div>
+      <div class="quick-card" id="qc-hrv">
+        <div class="quick-label">HRV</div>
+        <div class="quick-val" id="q-hrv">—</div>
+        <div class="quick-sub">ms</div>
+      </div>
+      <div class="quick-card" id="qc-energy">
+        <div class="quick-label">ENERGY</div>
+        <div class="quick-val" id="q-energy">—</div>
+        <div class="quick-sub">/ 10</div>
+      </div>
+      <div class="quick-card" id="qc-yoga">
+        <div class="quick-label">YOGA STREAK</div>
+        <div class="quick-val" id="q-yoga">0</div>
+        <div class="quick-sub">days 🔥</div>
+      </div>
+    </div>
+
+    <!-- RECOVERY TIMERS -->
+    <div class="section-label">muscle readiness</div>
+    <div class="card">
+      <div class="timer-grid" id="timer-grid"></div>
+    </div>
+
+    <!-- WEEK BAR -->
+    <div class="section-label">this week</div>
+    <div class="card">
+      <div class="week-bar" id="week-bar"></div>
+      <div style="display:flex;gap:14px;margin-top:10px;">
+        <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:rgba(200,240,96,0.3);border-radius:2px;display:inline-block;"></span>LIFT</span>
+        <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:rgba(90,180,255,0.3);border-radius:2px;display:inline-block;"></span>RUN</span>
+        <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:rgba(61,255,208,0.3);border-radius:2px;display:inline-block;"></span>BOTH</span>
+      </div>
+    </div>
+
+    <!-- QUICK MUSCLE TRACKER -->
+    <div class="section-label">today's muscle check</div>
+    <div class="card">
+      <div class="card-label">tap when you finish a session</div>
+      <div class="muscle-grid" id="muscle-grid-quick"></div>
+    </div>
+
+    <!-- CHECK-IN -->
+    <div class="section-label">daily check-in</div>
+    <div class="card">
+      <div id="checkin-done-state" style="display:none;">
+        <div class="alert alert-green" style="margin-bottom:8px;"><i class="ti ti-check"></i> Check-in saved for today</div>
+        <button class="btn btn-ghost" onclick="resetCheckin()">update check-in</button>
+      </div>
+      <div id="checkin-form-state">
+        <div class="slider-row">
+          <div class="slider-label"><span>hours of sleep</span><span class="slider-val" id="sv-sleep">7h</span></div>
+          <input type="range" min="3" max="12" value="7" step="0.5" id="sl-sleep" oninput="updateSleepDisplay(this.value);recalcScore()">
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">3h</span>
+            <span id="sleep-quality-label" style="font-size:10px;font-family:var(--font-mono);color:var(--accent);">GOOD</span>
+            <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">12h</span>
+          </div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>energy level</span><span class="slider-val" id="sv-energy">7</span></div>
+          <input type="range" min="1" max="10" value="7" id="sl-energy" oninput="document.getElementById('sv-energy').textContent=this.value;recalcScore()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>overall soreness</span><span class="slider-val" id="sv-soreness">3</span></div>
+          <input type="range" min="1" max="10" value="3" id="sl-soreness" oninput="document.getElementById('sv-soreness').textContent=this.value;recalcScore()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>stress level</span><span class="slider-val" id="sv-stress">3</span></div>
+          <input type="range" min="1" max="10" value="3" id="sl-stress" oninput="document.getElementById('sv-stress').textContent=this.value;recalcScore()">
+        </div>
+
+        <!-- HRV + RHR -->
+        <div class="hrv-row">
+          <div class="hrv-field">
+            <div class="hrv-label">HRV (ms)</div>
+            <input class="num-inp" type="number" id="inp-hrv" placeholder="65" min="20" max="200">
+          </div>
+          <div class="hrv-field">
+            <div class="hrv-label">RESTING HR (bpm)</div>
+            <input class="num-inp" type="number" id="inp-rhr" placeholder="55" min="30" max="120">
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div class="slider-label" style="margin-bottom:8px;"><span>yoga today?</span></div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-ghost btn-sm" id="yoga-yes" onclick="setYoga(true)" style="flex:1;">✓ yes</button>
+            <button class="btn btn-ghost btn-sm" id="yoga-no" onclick="setYoga(false)" style="flex:1;">not yet</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="submitCheckin()">save check-in</button>
+      </div>
+    </div>
+
+    <!-- AI REC -->
+    <div class="section-label">coach says</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-sparkles" style="font-size:12px;color:var(--accent);"></i> ai recommendation</div>
+      <div class="ai-bubble" id="ai-rec">Complete your check-in above to unlock your personalized recommendation.</div>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="askCoach()">ask coach for more ↗</button>
+    </div>
+
+  </div>
+
+  <!-- ═══ WORKOUTS ═══ -->
+  <div class="page" id="page-workouts">
+
+    <div class="alert alert-green"><i class="ti ti-check"></i> Hevy synced — 57 sessions, all PRs loaded</div>
+
+    <div class="section-label">muscle tracker</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-target" style="font-size:12px;"></i> this week — tap when done</div>
+      <div class="muscle-grid" id="muscle-grid"></div>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="resetWeek()">reset week</button>
+    </div>
+
+    <div class="section-label">muscle soreness</div>
+    <div class="card"><div id="soreness-sliders"></div></div>
+
+    <div class="section-label">personal records</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-trophy" style="font-size:12px;color:var(--amber);"></i> from hevy history</div>
+      <div id="pr-list"></div>
+    </div>
+
+    <div class="section-label">recent sessions</div>
+    <div class="card"><div id="hevy-sessions"></div></div>
+
+    <div class="section-label">yoga streak</div>
+    <div class="card">
+      <div class="card-label">last 7 days — tap to toggle</div>
+      <div class="yoga-row" id="yoga-row"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══ RUNS ═══ -->
+  <div class="page" id="page-runs">
+
+    <div class="card" style="margin-bottom:8px;">
+      <div id="strava-loading" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-family:var(--font-mono);"><div class="spinner"></div> FETCHING STRAVA...</div>
+      <div id="strava-ok" style="display:none;" class="status-row"><div class="sdot sdot-green"></div><span style="font-size:13px;color:var(--accent);font-weight:500;">Strava connected</span></div>
+      <div id="strava-err" style="display:none;" class="status-row"><div class="sdot sdot-amber"></div><span>Connect Strava in Settings</span></div>
+    </div>
+
+    <div class="section-label">recent runs</div>
+    <div class="card"><div id="runs-list"><div style="font-size:12px;color:var(--text3);text-align:center;padding:1rem;font-family:var(--font-mono);">LOADING...</div></div></div>
+
+    <div class="section-label">this week</div>
+    <div class="metric-row">
+      <div class="metric"><div class="metric-val" id="s-miles">—</div><div class="metric-lab">miles</div></div>
+      <div class="metric"><div class="metric-val" id="s-runs">—</div><div class="metric-lab">runs</div></div>
+      <div class="metric"><div class="metric-val" id="s-pace" style="font-size:14px;">—</div><div class="metric-lab">pace</div></div>
+      <div class="metric"><div class="metric-val" id="s-elev">—</div><div class="metric-lab">elev ft</div></div>
+    </div>
+
+    <div class="section-label">your running split</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-calendar" style="font-size:12px;"></i> personalized weekly plan</div>
+      <div id="run-split"></div>
+    </div>
+
+    <div class="section-label">log manually</div>
+    <div class="card">
+      <div class="slider-row">
+        <div class="slider-label"><span>distance (miles)</span><span class="slider-val" id="rv-dist">3.0</span></div>
+        <input type="range" min="1" max="15" value="3" step="0.5" id="rl-dist" oninput="document.getElementById('rv-dist').textContent=parseFloat(this.value).toFixed(1)">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span>zone</span><span class="slider-val" id="rv-zone">Zone 3</span></div>
+        <input type="range" min="1" max="5" value="3" step="1" id="rl-zone" oninput="document.getElementById('rv-zone').textContent='Zone '+this.value">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span>how did it feel?</span><span class="slider-val" id="rv-feel">7</span></div>
+        <input type="range" min="1" max="10" value="7" id="rl-feel" oninput="document.getElementById('rv-feel').textContent=this.value">
+      </div>
+      <button class="btn btn-primary" onclick="logRun()">log run</button>
+    </div>
+
+  </div>
+
+  <!-- ═══ INSIGHTS ═══ -->
+  <div class="page" id="page-insights">
+
+    <div class="section-label">weekly summary</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-chart-bar" style="font-size:12px;color:var(--accent);"></i> week of <span id="week-of">—</span></div>
+      <div id="weekly-summary"></div>
+    </div>
+
+    <div class="section-label">recovery insights</div>
+    <div class="card">
+      <div id="insights-list"></div>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="deepInsight()">get full ai analysis ↗</button>
+    </div>
+
+    <div class="section-label">bench press trend</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-trending-up" style="font-size:12px;color:var(--accent);"></i> top set per session — all time</div>
+      <div id="bench-chart"></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:4px;">
+        <span>OCT '25</span><span>MAY '26</span>
+      </div>
+    </div>
+
+    <div class="section-label">hrv trend</div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-heart-rate-monitor" style="font-size:12px;color:var(--red);"></i> heart rate variability — last 14 days</div>
+      <div id="hrv-chart"></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;">Log HRV daily in check-in to see your trend. Higher = better recovered.</div>
+    </div>
+
+    <div class="section-label">nutrition</div>
+    <div class="card">
+      <div class="card-label">log today's bevel numbers</div>
+      <div class="nut-grid">
+        <div class="nut-field"><div class="nut-label">CALORIES</div><input type="number" placeholder="2400" id="nut-cal"></div>
+        <div class="nut-field"><div class="nut-label">PROTEIN (g)</div><input type="number" placeholder="180" id="nut-prot"></div>
+        <div class="nut-field"><div class="nut-label">CARBS (g)</div><input type="number" placeholder="250" id="nut-carb"></div>
+        <div class="nut-field"><div class="nut-label">FATS (g)</div><input type="number" placeholder="70" id="nut-fat"></div>
+      </div>
+      <button class="btn btn-primary" onclick="saveNutrition()">save nutrition</button>
+      <div id="nut-saved" style="display:none;margin-top:8px;" class="alert alert-green"><i class="ti ti-check"></i> Saved!</div>
+      <div id="nut-today" style="margin-top:10px;display:none;">
+        <div class="nut-bar-row">
+          <div class="nut-bar-card"><div class="nut-bar-val" id="nb-cal" style="color:var(--accent);">—</div><div class="nut-bar-lab">KCAL</div></div>
+          <div class="nut-bar-card"><div class="nut-bar-val" id="nb-prot" style="color:var(--blue);">—</div><div class="nut-bar-lab">PROTEIN</div></div>
+          <div class="nut-bar-card"><div class="nut-bar-val" id="nb-carb" style="color:var(--amber);">—</div><div class="nut-bar-lab">CARBS</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ RECOVERY ═══ -->
+  <div class="page" id="page-recovery">
+
+    <div class="card card-accent">
+      <div class="card-label"><i class="ti ti-sparkles" style="font-size:12px;color:var(--accent);"></i> ai recovery protocol</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:14px;">
+        Based on today's check-in and what you trained, I'll generate a specific recovery protocol — which muscles to massage gun, roll out, and stretch, in what order, and for how long.
+      </div>
+
+      <!-- CONTEXT SUMMARY -->
+      <div id="rec-context" style="margin-bottom:14px;">
+        <div class="section-label" style="margin-top:0;">today's context</div>
+        <div id="rec-context-body" style="background:var(--bg3);border-radius:var(--r-sm);padding:12px;font-size:12px;color:var(--text2);font-family:var(--font-mono);line-height:1.8;"></div>
+      </div>
+
+      <!-- EQUIPMENT SELECTION -->
+      <div class="section-label" style="margin-top:0;">your equipment</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px;">
+        <button class="equip-btn active" id="eq-gun" onclick="toggleEquip('gun')">
+          <i class="ti ti-device-gamepad-2" style="font-size:16px;"></i>
+          <span>Massage Gun</span>
+        </button>
+        <button class="equip-btn active" id="eq-roller" onclick="toggleEquip('roller')">
+          <i class="ti ti-circle" style="font-size:16px;"></i>
+          <span>Foam Roller</span>
+        </button>
+        <button class="equip-btn active" id="eq-stretch" onclick="toggleEquip('stretch')">
+          <i class="ti ti-yoga" style="font-size:16px;"></i>
+          <span>Stretching</span>
+        </button>
+        <button class="equip-btn" id="eq-ice" onclick="toggleEquip('ice')">
+          <i class="ti ti-snowflake" style="font-size:16px;"></i>
+          <span>Ice / Cold</span>
+        </button>
+      </div>
+
+      <!-- INTENSITY OVERRIDE -->
+      <div class="section-label" style="margin-top:0;">session intensity</div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;">
+        <button class="intensity-btn" id="int-light" onclick="setIntensity('light')">Light</button>
+        <button class="intensity-btn active" id="int-moderate" onclick="setIntensity('moderate')">Moderate</button>
+        <button class="intensity-btn" id="int-hard" onclick="setIntensity('hard')">Hard</button>
+      </div>
+
+      <button class="btn btn-primary" id="gen-protocol-btn" onclick="generateProtocol()">
+        generate my recovery protocol
+      </button>
+    </div>
+
+    <!-- PROTOCOL OUTPUT -->
+    <div id="protocol-output" style="display:none;">
+      <div class="section-label">your protocol</div>
+      <div class="card">
+        <div id="protocol-loading" style="display:none;align-items:center;gap:10px;padding:8px 0;font-size:13px;color:var(--text2);">
+          <div class="spinner"></div> Generating your protocol...
+        </div>
+        <div id="protocol-content"></div>
+      </div>
+      <div class="card" style="margin-top:0;">
+        <div class="card-label" style="margin-bottom:8px;">total time</div>
+        <div style="display:flex;align-items:baseline;gap:6px;">
+          <span id="protocol-time" style="font-family:var(--font-head);font-size:32px;font-weight:800;color:var(--accent);">—</span>
+          <span style="font-size:13px;color:var(--text3);">minutes</span>
+        </div>
+        <div id="protocol-note" style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5;"></div>
+      </div>
+    </div>
+
+    <!-- QUICK PROTOCOLS -->
+    <div class="section-label">quick reference</div>
+    <div class="card">
+      <div class="card-label">general recovery tools</div>
+      <div id="quick-ref-list">
+        <div class="quick-ref-item">
+          <div class="quick-ref-title"><i class="ti ti-device-gamepad-2" style="color:var(--accent);"></i> Massage Gun</div>
+          <div class="quick-ref-body">Use on muscle belly, not joints or spine. 2 min per muscle, medium pressure. Best within 30 min post-workout or before bed.</div>
+        </div>
+        <div class="quick-ref-item">
+          <div class="quick-ref-title"><i class="ti ti-circle" style="color:var(--blue);"></i> Foam Roller</div>
+          <div class="quick-ref-body">Slow, controlled rolls. Pause on tight spots 20–30 sec. 60–90 sec per muscle. Roll before stretching for best results.</div>
+        </div>
+        <div class="quick-ref-item">
+          <div class="quick-ref-title"><i class="ti ti-yoga" style="color:var(--teal);"></i> Stretching</div>
+          <div class="quick-ref-body">Static stretches held 30–45 sec post-workout. Dynamic stretches pre-workout. Never stretch cold — roll first.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ SETTINGS ═══ -->
+  <div class="page" id="page-settings">
+
+    <div id="notif-section" class="notif-banner">
+      <span class="notif-text">Enable daily check-in reminder?</span>
+      <button class="notif-btn" onclick="enableNotifications()">Enable</button>
+    </div>
+
+    <div class="section-label">strava</div>
+    <div class="card">
+      <div class="status-row" style="margin-bottom:8px;"><div class="sdot" id="sv-dot" style="background:var(--border2);"></div><span id="sv-text" style="font-size:12px;">Not connected</span></div>
+      <div class="inp-label" style="margin-top:0;">CLIENT ID</div>
+      <input class="token-inp" id="s-cid" value="243814">
+      <div class="inp-label">CLIENT SECRET</div>
+      <input class="token-inp" id="s-cs" value="19f3bb53cea8cf2aed8c2f2c8b173c5091a97d8e">
+      <div class="inp-label">REFRESH TOKEN (auto-saved after connect)</div>
+      <input class="token-inp" id="s-rt" placeholder="auto-filled after connecting">
+      <button class="btn btn-primary" style="margin-top:12px;" onclick="connectStrava()">connect strava</button>
+      <button class="btn btn-ghost" onclick="testStrava()">test connection</button>
+      <div id="oauth-status" style="margin-top:8px;display:none;"></div>
+    </div>
+
+    <div class="section-label">hevy</div>
+    <div class="card">
+      <div class="status-row"><div class="sdot sdot-green"></div><span>57 sessions synced from CSV</span></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;">Re-upload your Hevy CSV export anytime to refresh PRs + history.</div>
+    </div>
+
+    <div class="section-label">bevel</div>
+    <div class="card">
+      <div class="status-row"><div class="sdot sdot-amber"></div><span>No API yet — log manually in Insights tab</span></div>
+    </div>
+
+    <div class="section-label">data</div>
+    <div class="card">
+      <button class="btn btn-ghost" onclick="if(confirm('Clear all saved data? This cannot be undone.')){localStorage.removeItem('rc3');location.reload();}">clear all local data</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i>Today</button>
+  <button class="nav-btn" onclick="showPage('workouts',this)"><i class="ti ti-barbell"></i>Workouts</button>
+  <button class="nav-btn" onclick="showPage('runs',this)"><i class="ti ti-run"></i>Runs</button>
+  <button class="nav-btn" onclick="showPage('recovery',this)"><i class="ti ti-heart-rate-monitor"></i>Recovery</button>
+  <button class="nav-btn" onclick="showPage('insights',this)"><i class="ti ti-chart-bar"></i>Insights</button>
+</nav>
+
+<script>
+// ─── STATIC DATA ─────────────────────────────────────────────────
+const MUSCLES=[
+  {id:'legs',   label:'Legs',            daysSince:31, recoverHrs:96},
+  {id:'chest',  label:'Chest',           daysSince:3,  recoverHrs:72},
+  {id:'back',   label:'Back',            daysSince:2,  recoverHrs:72},
+  {id:'shoulders',label:'Shoulders & Arms',daysSince:1,recoverHrs:48},
+  {id:'abs',    label:'Abs',             daysSince:4,  recoverHrs:48},
+];
+const SORENESS_MUSCLES=['chest','back','shoulders','legs','abs','calves'];
+const HEVY_SESSIONS=[
+  {date:'May 11',title:'Shoulders and Arms',dur:'1h 20m'},
+  {date:'May 10',title:'Back',dur:'1h 6m'},
+  {date:'May 09',title:'Chest',dur:'25m'},
+  {date:'May 07',title:'Abs',dur:'12m'},
+  {date:'May 07',title:'Back',dur:'51m'},
+  {date:'May 05',title:'Chest and Abs',dur:'49m'},
+  {date:'Apr 27',title:'Abs',dur:'35m'},
+  {date:'Apr 27',title:'Shoulders and Arms',dur:'1h 34m'},
+  {date:'Apr 25',title:'Quick Chest',dur:'27m'},
+  {date:'Apr 23',title:'Shoulders and Arms',dur:'1h 9m'},
+];
+const PRS=[
+  {name:'Bench press (barbell)',    val:'175 lbs × 1',  date:'Feb 25',isNew:false},
+  {name:'Incline bench (barbell)',  val:'135 lbs × 2',  date:'May 9', isNew:true},
+  {name:'Weighted pull up',         val:'+25 lbs × 8',  date:'May 10',isNew:true},
+  {name:'Hack squat (machine)',     val:'265 lbs × 6',  date:'Feb 24',isNew:false},
+  {name:'Seated OHP (barbell)',     val:'95 lbs × 3',   date:'Apr 27',isNew:false},
+  {name:'Triceps pushdown',         val:'70 lbs × 12',  date:'Feb 11',isNew:false},
+  {name:'Landmine row',             val:'105 lbs × 16', date:'May 10',isNew:true},
+  {name:'Calf press (machine)',     val:'265 lbs × 12', date:'Feb 24',isNew:false},
+  {name:'Leg extension (machine)',  val:'130 lbs × 12', date:'Apr 11',isNew:false},
+  {name:'Lying leg curl (machine)', val:'95 lbs × 12',  date:'Apr 11',isNew:false},
+];
+const BENCH_HISTORY=[
+  {date:'Oct',w:135},{date:'Nov',w:145},{date:'Nov',w:155},
+  {date:'Dec',w:155},{date:'Jan',w:165},{date:'Feb',w:165},
+  {date:'Feb',w:175},{date:'Apr',w:135},{date:'Apr',w:135},
+  {date:'May',w:155},{date:'May',w:135},
+];
+const RUN_SPLIT=[
+  {day:'MON',title:'Rest / Yoga',detail:'Active recovery. 20–30 min yoga targeting hip flexors and hamstrings.',badges:['rest','yoga']},
+  {day:'TUE',title:'Lift — Chest or Back',detail:'Heavy compound work. Keep intensity high, full rest between sets.',badges:['lift']},
+  {day:'WED',title:'Zone 3 Run — 3 miles',detail:'Moderate-hard effort. Top of your aerobic zone. Follow with 10 min yoga cool-down.',badges:['z3','yoga']},
+  {day:'THU',title:'Lift — Shoulders & Arms',detail:'Your most consistent session. Run the full routine.',badges:['lift']},
+  {day:'FRI',title:'Lift — Legs',detail:'Priority session. Hack squat, calf press, leg curl, leg extension. Don\'t skip this.',badges:['lift']},
+  {day:'SAT',title:'Zone 2 Long Run — 4–6 miles',detail:'Easy, fully conversational pace. Build distance by 10% each week. This is your aerobic base builder.',badges:['z2']},
+  {day:'SUN',title:'Full Rest / Long Yoga',detail:'Complete rest. 30–45 min yoga if possible — best CNS recovery tool you have.',badges:['rest','yoga']},
+];
+const INSIGHTS=[
+  {color:'var(--red)',   text:'<strong>Legs: 31 days overdue.</strong> Skipping legs long-term creates imbalances that cap your upper body strength. Hack squats, leg curls, extensions — this week, no excuses.'},
+  {color:'var(--accent)',text:'<strong>Weighted pull ups: new PR.</strong> +25 lbs × 8 on May 10. You\'re ready to test +30 lbs for 4–6 reps next back day. Hit it fresh as your first exercise.'},
+  {color:'var(--blue)',  text:'<strong>Running split.</strong> 48+ hrs between zone 3 run and leg day. Wednesday run + Friday legs is your ideal split. Zone 2 Saturday builds your aerobic base without taxing recovery.'},
+  {color:'var(--amber)', text:'<strong>Bench goal: 185 lbs.</strong> Hit 175 × 1 in February. Get 155–165 for 3 clean reps consistently first. You\'re currently training at 135–155 — time to push the working weight.'},
+  {color:'var(--teal)',  text:'<strong>HRV is your best recovery signal.</strong> Log it daily in the check-in. A drop of 10+ ms below your baseline means dial back intensity that day regardless of how you feel.'},
+];
+
+// ─── STATE ────────────────────────────────────────────────────────
+let S={
+  musclesDone:{},
+  soreness:{chest:2,back:2,shoulders:2,legs:2,abs:1,calves:1},
+  yogaDays:{}, checkinDoneDate:null,
+  checkin:{sleep:7,energy:7,soreness:3,stress:3,yoga:false,hrv:null,rhr:null},
+  manualRuns:[], nutrition:{}, hrvHistory:{},
+  stravaToken:null, stravaTokenExpiry:0, stravaRefreshToken:null, stravaConnected:false,
+  weeklyRuns:[]
+};
+
+function loadS(){ try{ const d=localStorage.getItem('rc3'); if(d) S=Object.assign(S,JSON.parse(d)); }catch(e){} }
+function saveS(){ try{ localStorage.setItem('rc3',JSON.stringify(S)); }catch(e){} }
+function today(){ return new Date().toISOString().split('T')[0]; }
+
+// ─── NAV ─────────────────────────────────────────────────────────
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='runs') loadStravaRuns();
+  if(id==='insights') renderInsightsPage();
+  if(id==='recovery') renderRecoveryContext();
+}
+
+function sleepHrsToScore(hrs){
+  if(hrs>=9)   return 10;
+  if(hrs>=8)   return 9;
+  if(hrs>=7.5) return 8;
+  if(hrs>=7)   return 7;
+  if(hrs>=6.5) return 6;
+  if(hrs>=6)   return 5;
+  if(hrs>=5.5) return 4;
+  if(hrs>=5)   return 3;
+  if(hrs>=4)   return 2;
+  return 1;
+}
+
+function sleepHrsToLabel(hrs){
+  if(hrs>=9)   return {label:'OPTIMAL',  color:'var(--accent)'};
+  if(hrs>=8)   return {label:'GREAT',    color:'var(--accent)'};
+  if(hrs>=7)   return {label:'GOOD',     color:'var(--teal)'};
+  if(hrs>=6)   return {label:'OK',       color:'var(--amber)'};
+  if(hrs>=5)   return {label:'LOW',      color:'var(--red)'};
+  return           {label:'CRITICAL',    color:'var(--red)'};
+}
+
+function updateSleepDisplay(val){
+  const hrs=parseFloat(val);
+  document.getElementById('sv-sleep').textContent=hrs+'h';
+  const {label,color}=sleepHrsToLabel(hrs);
+  const lbl=document.getElementById('sleep-quality-label');
+  if(lbl){ lbl.textContent=label; lbl.style.color=color; }
+  document.getElementById('q-sleep').textContent=hrs+'h';
+}
+
+// ─── SCORE ────────────────────────────────────────────────────────
+function recalcScore(){
+  const slHrs=parseFloat(document.getElementById('sl-sleep').value);
+  const sl=sleepHrsToScore(slHrs);
+  const en=parseInt(document.getElementById('sl-energy').value);
+  const so=parseInt(document.getElementById('sl-soreness').value);
+  const st=parseInt(document.getElementById('sl-stress').value);
+  const hrv=parseFloat(document.getElementById('inp-hrv').value)||null;
+  const avgSor=Object.values(S.soreness).reduce((a,b)=>a+b,0)/SORENESS_MUSCLES.length;
+
+  // HRV bonus/penalty — compare to stored baseline
+  let hrvMod=0;
+  if(hrv){
+    const baseline=getHRVBaseline();
+    if(baseline){
+      const diff=hrv-baseline;
+      if(diff>10) hrvMod=8;
+      else if(diff>0) hrvMod=4;
+      else if(diff<-10) hrvMod=-8;
+      else if(diff<0) hrvMod=-4;
+    }
+  }
+
+  const base=Math.round((sl/10)*25+(en/10)*25+((10-so)/10)*25+((10-st)/10)*15+((10-avgSor)/10)*10);
+  const score=Math.max(0,Math.min(100,base+hrvMod));
+
+  document.getElementById('score-num').textContent=score;
+  document.getElementById('header-score').textContent=score;
+  const arc=document.getElementById('score-arc');
+  const offset=226-(226*score/100);
+  arc.setAttribute('stroke-dashoffset',Math.round(offset));
+  arc.setAttribute('stroke',score>=70?'url(#rg)':score>=45?'var(--amber)':'var(--red)');
+
+  const status=score>=70?'Good to Train 💪':score>=45?'Train Light 🔶':'Rest Day 🔴';
+  document.getElementById('score-status').textContent=status;
+
+  const due=MUSCLES.filter(m=>!S.musclesDone[m.id]).sort((a,b)=>b.daysSince-a.daysSince);
+  let detail='';
+  if(score>=70){
+    detail=due.length?`Priority today: ${due[0].label} (${due[0].daysSince}d since last session). You're recovered and ready to push.`:`All muscles hit this week — great consistency. Consider a deload or zone 2 run today.`;
+  } else if(score>=45){
+    detail=`Moderate fatigue. Train at 70% intensity or focus on ${due[0]?.label||'mobility'}. Yoga tonight will help.`;
+  } else {
+    detail=`Rest day recommended. Sleep, protein, and yoga are your best investments today.`;
+  }
+  document.getElementById('score-detail').textContent=detail;
+
+  // Update quick cards
+  document.getElementById('q-sleep').textContent=sl;
+  document.getElementById('q-energy').textContent=en;
+  if(hrv){ document.getElementById('q-hrv').textContent=Math.round(hrv); document.getElementById('qc-hrv').classList.add('done'); }
+
+  updateAIRec(score,due,hrv);
+}
+
+function getHRVBaseline(){
+  const vals=Object.values(S.hrvHistory).filter(Boolean);
+  if(vals.length<3) return null;
+  return vals.slice(-7).reduce((a,b)=>a+b,0)/Math.min(7,vals.length);
+}
+
+function updateAIRec(score,due,hrv){
+  const el=document.getElementById('ai-rec');
+  const baseline=getHRVBaseline();
+  let hrvNote='';
+  if(hrv&&baseline){
+    const diff=hrv-baseline;
+    if(diff<-10) hrvNote=` Your HRV is ${Math.abs(Math.round(diff))} ms below baseline — your body is signaling high stress. `;
+    else if(diff>10) hrvNote=` Your HRV is ${Math.round(diff)} ms above baseline — your nervous system is primed. `;
+  }
+  let rec='';
+  if(score>=70){
+    rec=due.length
+      ?`You're recovered and ready.${hrvNote} Top priority: ${due[0].label} (${due[0].daysSince}d overdue). ${due.length>1?`After that, ${due[1].label} is next.`:''} Aim for 0.8–1g protein per lb bodyweight today.`
+      :`All muscle groups hit this week.${hrvNote} Consider a deload or zone 2 run today to stay active without adding fatigue.`;
+  } else if(score>=45){
+    rec=`Moderate fatigue detected.${hrvNote} Keep today light — ${due[0]?.label||'mobility'} at 70% weight, skip sets to failure. Yoga + 8 hrs sleep tonight will bring your score back up.`;
+  } else {
+    rec=`Recovery score is low.${hrvNote} Rest is the most productive thing today. Focus on sleep, protein (especially before bed), and a 20 min yoga session. You'll hit harder tomorrow.`;
+  }
+  el.textContent=rec;
+}
+
+// ─── CHECKIN ─────────────────────────────────────────────────────
+let yogaToday=false;
+function setYoga(v){
+  yogaToday=v;
+  document.getElementById('yoga-yes').style.borderColor=v?'var(--accent)':'var(--border2)';
+  document.getElementById('yoga-yes').style.color=v?'var(--accent)':'var(--text2)';
+  document.getElementById('yoga-no').style.borderColor=!v?'var(--accent)':'var(--border2)';
+  document.getElementById('yoga-no').style.color=!v?'var(--accent)':'var(--text2)';
+}
+
+function submitCheckin(){
+  const t=today();
+  const hrv=parseFloat(document.getElementById('inp-hrv').value)||null;
+  const rhr=parseFloat(document.getElementById('inp-rhr').value)||null;
+  if(yogaToday) S.yogaDays[t]=true;
+  if(hrv) S.hrvHistory[t]=hrv;
+  S.checkin={
+    sleep:parseFloat(document.getElementById('sl-sleep').value),
+    energy:parseInt(document.getElementById('sl-energy').value),
+    soreness:parseInt(document.getElementById('sl-soreness').value),
+    stress:parseInt(document.getElementById('sl-stress').value),
+    yoga:yogaToday, hrv, rhr
+  };
+  S.checkinDoneDate=t;
+  saveS();
+  document.getElementById('checkin-form-state').style.display='none';
+  document.getElementById('checkin-done-state').style.display='block';
+  renderYoga(); renderQuickStats();
+}
+
+function resetCheckin(){
+  S.checkinDoneDate=null;
+  document.getElementById('checkin-form-state').style.display='block';
+  document.getElementById('checkin-done-state').style.display='none';
+}
+
+function renderQuickStats(){
+  if(S.checkin){
+    document.getElementById('q-sleep').textContent=S.checkin.sleep;
+    document.getElementById('q-energy').textContent=S.checkin.energy;
+    if(S.checkin.hrv){ document.getElementById('q-hrv').textContent=Math.round(S.checkin.hrv); document.getElementById('qc-hrv').classList.add('done'); }
+  }
+}
+
+// ─── MUSCLES ─────────────────────────────────────────────────────
+function renderMuscleGrid(elId='muscle-grid'){
+  const el=document.getElementById(elId);
+  if(!el) return;
+  el.innerHTML=MUSCLES.map(m=>{
+    const done=S.musclesDone[m.id];
+    const overdue=m.daysSince>7&&!done;
+    return `<button class="muscle-btn${done?' done':''}${overdue?' overdue':''}" onclick="toggleMuscle('${m.id}')">
+      <div class="mdot"></div>
+      <div class="minfo">
+        <div class="mname">${m.label}</div>
+        <div class="mdays">${done?'done ✓':m.daysSince===0?'today':m.daysSince+'d ago'}</div>
+      </div>
+    </button>`;
+  }).join('');
+}
+
+function toggleMuscle(id){
+  S.musclesDone[id]=!S.musclesDone[id];
+  const m=MUSCLES.find(x=>x.id===id);
+  if(S.musclesDone[id]){ m.daysSince=0; }
+  saveS();
+  renderMuscleGrid('muscle-grid');
+  renderMuscleGrid('muscle-grid-quick');
+  renderWeekBar(); renderRecoveryTimers();
+  checkLegsAlert();
+}
+
+function resetWeek(){
+  if(confirm('Reset this week\'s muscle tracking?')){
+    S.musclesDone={};
+    MUSCLES.forEach(m=>{ if(m.id==='legs') m.daysSince=31; });
+    saveS(); renderMuscleGrid('muscle-grid'); renderMuscleGrid('muscle-grid-quick');
+    checkLegsAlert();
+  }
+}
+
+// ─── SORENESS ────────────────────────────────────────────────────
+function renderSoreness(){
+  document.getElementById('soreness-sliders').innerHTML=SORENESS_MUSCLES.map(m=>
+    `<div class="slider-row">
+      <div class="slider-label"><span>${m}</span><span class="slider-val" id="ssv-${m}">${S.soreness[m]||1}</span></div>
+      <input type="range" min="1" max="10" value="${S.soreness[m]||1}" step="1" oninput="S.soreness['${m}']=parseInt(this.value);document.getElementById('ssv-${m}').textContent=this.value;saveS();recalcScore()">
+    </div>`).join('');
+}
+
+// ─── YOGA ─────────────────────────────────────────────────────────
+function renderYoga(){
+  const el=document.getElementById('yoga-row');
+  if(!el) return;
+  const days=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const key=d.toISOString().split('T')[0];
+    const lbl=['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()];
+    const done=S.yogaDays[key]; const isToday=key===today();
+    days.push(`<div class="yoga-day${done?' done':''}${isToday?' today-ring':''}" onclick="toggleYoga('${key}')">${lbl}</div>`);
+  }
+  el.innerHTML=days.join('');
+  // streak
+  let streak=0; const d2=new Date();
+  while(true){ const k=d2.toISOString().split('T')[0]; if(S.yogaDays[k]){streak++;d2.setDate(d2.getDate()-1);}else break; }
+  document.getElementById('q-yoga').textContent=streak;
+}
+
+function toggleYoga(key){ S.yogaDays[key]=!S.yogaDays[key]; saveS(); renderYoga(); }
+
+// ─── WEEK BAR ────────────────────────────────────────────────────
+function renderWeekBar(){
+  const el=document.getElementById('week-bar');
+  const now=new Date();
+  const days=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(now); d.setDate(now.getDate()-now.getDay()+i);
+    const key=d.toISOString().split('T')[0];
+    const lbl=['SU','MO','TU','WE','TH','FR','SA'][i];
+    const isToday=key===today();
+    const hevyDate=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const hasLift=HEVY_SESSIONS.some(s=>s.date===hevyDate);
+    const hasRun=(S.manualRuns&&S.manualRuns.some(r=>r.date===key))||(S.weeklyRuns&&S.weeklyRuns.some(r=>r.date===key));
+    let cls='day-block'+(isToday?' today-ring':'');
+    let content='';
+    if(hasLift&&hasRun){cls+=' both';content='both';}
+    else if(hasLift){cls+=' lift';content='lift';}
+    else if(hasRun){cls+=' run';content='run';}
+    days.push(`<div class="day-col"><div class="day-lbl">${lbl}</div><div class="${cls}">${content}</div></div>`);
+  }
+  el.innerHTML=days.join('');
+}
+
+// ─── RECOVERY TIMERS ─────────────────────────────────────────────
+function renderRecoveryTimers(){
+  document.getElementById('timer-grid').innerHTML=MUSCLES.map(m=>{
+    const hrsAgo=m.daysSince*24;
+    const pct=Math.min(100,Math.round((hrsAgo/m.recoverHrs)*100));
+    const ready=pct>=100;
+    const color=ready?'var(--accent)':pct>60?'var(--amber)':'var(--red)';
+    const hrsLeft=Math.max(0,m.recoverHrs-hrsAgo);
+    const label=ready?'READY ✓':`~${hrsLeft}h left`;
+    return `<div class="timer-card">
+      <div class="timer-muscle">${m.label}</div>
+      <div class="timer-bar-wrap"><div class="timer-bar" style="width:${pct}%;background:${color};"></div></div>
+      <div class="timer-label" style="color:${color};">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── LEGS ALERT ───────────────────────────────────────────────────
+function checkLegsAlert(){
+  const m=MUSCLES.find(m=>m.id==='legs');
+  const el=document.getElementById('legs-alert');
+  if(m.daysSince>7&&!S.musclesDone['legs']){
+    el.style.display='flex';
+    document.getElementById('legs-alert-text').textContent=`⚠ Legs: ${m.daysSince} days since last session — make it today's priority`;
+  } else { el.style.display='none'; }
+}
+
+// ─── PRs & SESSIONS ───────────────────────────────────────────────
+function renderPRs(){
+  document.getElementById('pr-list').innerHTML=PRS.map(p=>
+    `<div class="pr-row">
+      <span class="pr-name">${p.name}${p.isNew?'<span class="pr-new">NEW</span>':''}</span>
+      <div class="pr-right"><div class="pr-val">${p.val}</div><div class="pr-date">${p.date}</div></div>
+    </div>`).join('');
+}
+
+function renderHevySessions(){
+  document.getElementById('hevy-sessions').innerHTML=HEVY_SESSIONS.map(s=>
+    `<div class="session-row"><span class="session-date">${s.date}</span><span class="session-title">${s.title}</span><span class="session-dur">${s.dur}</span></div>`).join('');
+}
+
+// ─── ZONE DETECTION ──────────────────────────────────────────────
+function detectZone(activity){
+  // Use pace (sec/meter) to estimate zone
+  if(!activity.moving_time||!activity.distance) return null;
+  const secPerMile=activity.moving_time/(activity.distance*0.000621371);
+  if(secPerMile<360) return 5;       // sub 6:00/mi
+  if(secPerMile<420) return 4;       // 6:00–7:00
+  if(secPerMile<510) return 3;       // 7:00–8:30
+  if(secPerMile<600) return 2;       // 8:30–10:00
+  return 1;                          // 10:00+
+}
+
+// ─── STRAVA ──────────────────────────────────────────────────────
+function connectStrava(){
+  const cid=document.getElementById('s-cid').value||'243814';
+  const redirect=encodeURIComponent('https://recovery-coach-one.vercel.app/');
+  window.location.href=`https://www.strava.com/oauth/authorize?client_id=${cid}&response_type=code&redirect_uri=${redirect}&approval_prompt=force&scope=read,activity:read`;
+}
+
+async function exchangeCode(code){
+  const cid=document.getElementById('s-cid').value||'243814';
+  const cs=document.getElementById('s-cs').value||'19f3bb53cea8cf2aed8c2f2c8b173c5091a97d8e';
+  const statusEl=document.getElementById('oauth-status');
+  if(statusEl){ statusEl.style.display='block'; statusEl.innerHTML='<div class="alert alert-amber"><div class="spinner"></div> Connecting to Strava...</div>'; }
+  try{
+    const res=await fetch('https://www.strava.com/api/v3/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:cid,client_secret:cs,code,grant_type:'authorization_code'})});
+    const data=await res.json();
+    if(data.access_token){
+      S.stravaToken=data.access_token; S.stravaTokenExpiry=data.expires_at;
+      S.stravaRefreshToken=data.refresh_token; S.stravaConnected=true;
+      saveS();
+      document.getElementById('sv-dot').className='sdot sdot-green';
+      document.getElementById('sv-text').textContent='Connected!';
+      document.getElementById('s-rt').value=data.refresh_token||'';
+      if(statusEl) statusEl.innerHTML='<div class="alert alert-green"><i class="ti ti-check"></i> Strava connected! Go to the Runs tab.</div>';
+      window.history.replaceState({},'','/');
+    } else {
+      if(statusEl) statusEl.innerHTML='<div class="alert alert-red">Connection failed. Try reconnecting.</div>';
+    }
+  }catch(e){
+    if(statusEl) statusEl.innerHTML='<div class="alert alert-red">Error connecting. Check credentials.</div>';
+  }
+}
+
+async function getStravaToken(){
+  const cid=document.getElementById('s-cid').value||'243814';
+  const cs=document.getElementById('s-cs').value||'19f3bb53cea8cf2aed8c2f2c8b173c5091a97d8e';
+  const rt=S.stravaRefreshToken||document.getElementById('s-rt').value;
+  if(!rt) return null;
+  if(S.stravaToken&&Date.now()/1000<S.stravaTokenExpiry-60) return S.stravaToken;
+  try{
+    const r=await fetch('https://www.strava.com/api/v3/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:cid,client_secret:cs,grant_type:'refresh_token',refresh_token:rt})});
+    const d=await r.json();
+    if(d.access_token){ S.stravaToken=d.access_token; S.stravaTokenExpiry=d.expires_at; if(d.refresh_token) S.stravaRefreshToken=d.refresh_token; S.stravaConnected=true; saveS(); return d.access_token; }
+  }catch(e){}
+  return null;
+}
+
+async function testStrava(){
+  const t=await getStravaToken();
+  document.getElementById('sv-dot').className='sdot '+(t?'sdot-green':'sdot-amber');
+  document.getElementById('sv-text').textContent=t?'Connected — token refreshed':'Failed — try reconnecting';
+}
+
+async function loadStravaRuns(){
+  document.getElementById('strava-loading').style.display='flex';
+  document.getElementById('strava-ok').style.display='none';
+  document.getElementById('strava-err').style.display='none';
+  const token=await getStravaToken();
+  if(!token){
+    document.getElementById('strava-loading').style.display='none';
+    document.getElementById('strava-err').style.display='flex';
+    document.getElementById('runs-list').innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:1.5rem;font-family:var(--font-mono);">CONNECT STRAVA IN SETTINGS</div>';
+    return;
+  }
+  try{
+    const after=Math.floor((Date.now()-30*24*60*60*1000)/1000);
+    const r=await fetch(`https://www.strava.com/api/v3/athlete/activities?per_page=15&after=${after}`,{headers:{Authorization:`Bearer ${token}`}});
+    const acts=await r.json();
+    const runs=acts.filter(a=>a.type==='Run'||a.sport_type==='Run');
+    document.getElementById('strava-loading').style.display='none';
+    document.getElementById('strava-ok').style.display='flex';
+    document.getElementById('sv-dot').className='sdot sdot-green';
+    document.getElementById('sv-text').textContent='Connected';
+    renderRuns(runs); updateRunStats(runs);
+    S.weeklyRuns=runs.map(r=>({date:r.start_date_local.split('T')[0],dist:r.distance}));
+    saveS(); renderWeekBar();
+  }catch(e){
+    document.getElementById('strava-loading').style.display='none';
+    document.getElementById('strava-err').style.display='flex';
+    document.getElementById('runs-list').innerHTML='<div style="font-size:12px;color:var(--red);text-align:center;padding:1.5rem;font-family:var(--font-mono);">ERROR FETCHING RUNS</div>';
+  }
+}
+
+function renderRuns(runs){
+  const el=document.getElementById('runs-list');
+  if(!runs.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:1.5rem;font-family:var(--font-mono);">NO RUNS IN LAST 30 DAYS</div>';return;}
+  el.innerHTML=runs.slice(0,8).map(r=>{
+    const miles=(r.distance*0.000621371).toFixed(2);
+    const mins=Math.floor(r.moving_time/60);
+    const pr=r.moving_time/(r.distance*0.000621371);
+    const pm=Math.floor(pr/60); const ps=Math.round(pr%60).toString().padStart(2,'0');
+    const date=new Date(r.start_date_local).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const zone=detectZone(r);
+    const elev=r.total_elevation_gain?Math.round(r.total_elevation_gain*3.28084)+'ft':'';
+    return `<div class="run-row">
+      <div class="run-icon"><i class="ti ti-run"></i></div>
+      <div class="run-info">
+        <div class="run-name">${r.name}</div>
+        <div class="run-meta">${date} · ${mins} min${elev?' · '+elev:''}</div>
+        ${zone?`<span class="zone-badge z${zone}">ZONE ${zone}</span>`:''}
+      </div>
+      <div class="run-stat">
+        <div class="run-dist">${miles} mi</div>
+        <div class="run-pace">${pm}:${ps}/mi</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateRunStats(runs){
+  const wa=Date.now()-7*24*60*60*1000;
+  const wr=runs.filter(r=>new Date(r.start_date_local)>wa);
+  const tm=wr.reduce((s,r)=>s+r.distance*0.000621371,0);
+  const tt=wr.reduce((s,r)=>s+r.moving_time,0);
+  const td=wr.reduce((s,r)=>s+r.distance*0.000621371,0);
+  const elev=wr.reduce((s,r)=>s+(r.total_elevation_gain||0),0);
+  document.getElementById('s-miles').textContent=tm.toFixed(1);
+  document.getElementById('s-runs').textContent=wr.length;
+  document.getElementById('s-elev').textContent=elev?Math.round(elev*3.28084):'—';
+  if(td>0){const pr=(tt/60)/td;const pm=Math.floor(pr);const ps=Math.round((pr%1)*60).toString().padStart(2,'0');document.getElementById('s-pace').textContent=`${pm}:${ps}`;}
+}
+
+function renderRunSplit(){
+  const bm={z2:'<span class="split-badge badge-z2">ZONE 2</span>',z3:'<span class="split-badge badge-z3">ZONE 3</span>',lift:'<span class="split-badge badge-lift">LIFT</span>',rest:'<span class="split-badge badge-rest">REST</span>',yoga:'<span class="split-badge badge-yoga">YOGA</span>'};
+  document.getElementById('run-split').innerHTML=RUN_SPLIT.map(d=>
+    `<div class="split-day">
+      <div class="split-day-name">${d.day}</div>
+      <div class="split-content">
+        <div class="split-title">${d.title}</div>
+        <div class="split-detail">${d.detail}</div>
+        <div class="split-badges">${d.badges.map(b=>bm[b]).join('')}</div>
+      </div>
+    </div>`).join('');
+}
+
+function logRun(){
+  const dist=parseFloat(document.getElementById('rl-dist').value);
+  const zone=parseInt(document.getElementById('rl-zone').value);
+  const feel=parseInt(document.getElementById('rl-feel').value);
+  S.manualRuns.push({date:today(),dist,zone,feel});
+  saveS(); renderWeekBar();
+  alert(`Run logged: ${dist} miles, Zone ${zone}`);
+}
+
+// ─── INSIGHTS PAGE ────────────────────────────────────────────────
+function renderInsightsPage(){
+  renderWeeklySummary();
+  renderInsightsList();
+  renderBenchChart();
+  renderHRVChart();
+  renderNutritionToday();
+}
+
+function renderWeeklySummary(){
+  const now=new Date();
+  const ws=new Date(now); ws.setDate(now.getDate()-now.getDay());
+  const we=new Date(ws); we.setDate(ws.getDate()+6);
+  document.getElementById('week-of').textContent=ws.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+we.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const musclesHit=Object.values(S.musclesDone).filter(Boolean).length;
+  const yogaDays=Object.keys(S.yogaDays).filter(k=>{const d=new Date(k);return d>=ws&&d<=we;}).length;
+  const avgScore=S.checkin?Math.round((S.checkin.sleep/10)*25+(S.checkin.energy/10)*25+((10-S.checkin.soreness)/10)*25+((10-S.checkin.stress)/10)*15):null;
+  const legsM=MUSCLES.find(m=>m.id==='legs');
+  const runCount=S.weeklyRuns?S.weeklyRuns.filter(r=>{const d=new Date(r.date);return d>=ws&&d<=we;}).length:0;
+  document.getElementById('weekly-summary').innerHTML=`
+    <div class="summary-stat"><span class="summary-key">muscle groups hit</span><span class="summary-val">${musclesHit} / 5</span></div>
+    <div class="summary-stat"><span class="summary-key">runs this week</span><span class="summary-val">${runCount}</span></div>
+    <div class="summary-stat"><span class="summary-key">yoga days</span><span class="summary-val">${yogaDays} / 7</span></div>
+    <div class="summary-stat"><span class="summary-key">recovery score</span><span class="summary-val">${avgScore?avgScore+' / 100':'fill check-in'}</span></div>
+    <div class="summary-stat"><span class="summary-key">legs status</span><span class="summary-val" style="color:${legsM.daysSince>7&&!S.musclesDone['legs']?'var(--red)':'var(--accent)'};">${S.musclesDone['legs']?'DONE THIS WEEK ✓':legsM.daysSince+'D OVERDUE ⚠'}</span></div>
+    <div class="summary-stat"><span class="summary-key">next priority</span><span class="summary-val" style="color:var(--accent);">${MUSCLES.filter(m=>!S.musclesDone[m.id]).sort((a,b)=>b.daysSince-a.daysSince)[0]?.label||'All done!'}</span></div>
+  `;
+}
+
+function renderInsightsList(){
+  document.getElementById('insights-list').innerHTML=INSIGHTS.map(ins=>
+    `<div class="insight-row"><div class="insight-dot" style="background:${ins.color};"></div><div class="insight-text">${ins.text}</div></div>`).join('');
+}
+
+function renderBenchChart(){
+  const el=document.getElementById('bench-chart');
+  const vals=BENCH_HISTORY.map(b=>b.w);
+  const min=Math.min(...vals)-15; const max=Math.max(...vals)+15;
+  const w=340; const h=80;
+  const pts=BENCH_HISTORY.map((b,i)=>{
+    const x=16+(i/(BENCH_HISTORY.length-1))*(w-32);
+    const y=h-8-((b.w-min)/(max-min))*(h-16);
+    return `${x},${y}`;
+  });
+  const ptsStr=pts.join(' ');
+  const areaStr=`${pts[0]} ${pts.slice(1).join(' ')} ${16+(BENCH_HISTORY.length-1)/(BENCH_HISTORY.length-1)*(w-32)},${h} 16,${h}`;
+  el.innerHTML=`<div class="trend-wrap"><svg width="100%" height="90" viewBox="0 0 ${w} ${h+10}" style="overflow:visible;">
+    <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c8f060" stop-opacity="0.25"/><stop offset="100%" stop-color="#c8f060" stop-opacity="0"/></linearGradient></defs>
+    <polygon points="${areaStr}" fill="url(#cg)"/>
+    <polyline points="${ptsStr}" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+    ${BENCH_HISTORY.map((b,i)=>{
+      const x=16+(i/(BENCH_HISTORY.length-1))*(w-32);
+      const y=h-8-((b.w-min)/(max-min))*(h-16);
+      const isPR=b.w===175;
+      return `<circle cx="${x}" cy="${y}" r="${isPR?4:2.5}" fill="${isPR?'var(--accent)':'var(--bg2)'}" stroke="var(--accent)" stroke-width="1.5"/>
+        ${isPR?`<text x="${x}" y="${y-7}" fill="var(--accent)" font-size="9" font-family="DM Mono,monospace" text-anchor="middle">175 PR</text>`:''}`;
+    }).join('')}
+    <line x1="0" y1="${h-8-((185-min)/(max-min))*(h-16)}" x2="${w}" y2="${h-8-((185-min)/(max-min))*(h-16)}" stroke="var(--amber)" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="${w-4}" y="${h-8-((185-min)/(max-min))*(h-16)-4}" fill="var(--amber)" font-size="9" font-family="DM Mono,monospace" text-anchor="end">goal 185</text>
+  </svg></div>`;
+}
+
+function renderHRVChart(){
+  const el=document.getElementById('hrv-chart');
+  const entries=Object.entries(S.hrvHistory).sort((a,b)=>a[0].localeCompare(b[0])).slice(-14);
+  if(entries.length<2){
+    el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:1.5rem;font-family:var(--font-mono);">LOG HRV DAILY TO SEE TREND</div>';
+    return;
+  }
+  const vals=entries.map(e=>e[1]);
+  const min=Math.min(...vals)-10; const max=Math.max(...vals)+10;
+  const w=340; const h=60;
+  const pts=entries.map((e,i)=>{
+    const x=16+(i/(entries.length-1))*(w-32);
+    const y=h-4-((e[1]-min)/(max-min))*(h-8);
+    return `${x},${y}`;
+  }).join(' ');
+  const baseline=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const by=h-4-((baseline-min)/(max-min))*(h-8);
+  el.innerHTML=`<div class="trend-wrap"><svg width="100%" height="70" viewBox="0 0 ${w} ${h+10}" style="overflow:visible;">
+    <line x1="0" y1="${by}" x2="${w}" y2="${by}" stroke="var(--text3)" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="4" y="${by-4}" fill="var(--text3)" font-size="8" font-family="DM Mono,monospace">avg ${Math.round(baseline)}</text>
+    <polyline points="${pts}" fill="none" stroke="var(--red)" stroke-width="1.5"/>
+    ${entries.map((e,i)=>{const x=16+(i/(entries.length-1))*(w-32);const y=h-4-((e[1]-min)/(max-min))*(h-8);return `<circle cx="${x}" cy="${y}" r="3" fill="var(--bg2)" stroke="var(--red)" stroke-width="1.5"/>`;}).join('')}
+  </svg></div>`;
+}
+
+function renderNutritionToday(){
+  const n=S.nutrition[today()];
+  if(n){
+    document.getElementById('nut-today').style.display='block';
+    document.getElementById('nb-cal').textContent=n.cal||'—';
+    document.getElementById('nb-prot').textContent=n.prot?n.prot+'g':'—';
+    document.getElementById('nb-carb').textContent=n.carb?n.carb+'g':'—';
+    if(n.cal) document.getElementById('nut-cal').value=n.cal;
+    if(n.prot) document.getElementById('nut-prot').value=n.prot;
+    if(n.carb) document.getElementById('nut-carb').value=n.carb;
+    if(n.fat) document.getElementById('nut-fat').value=n.fat;
+  }
+}
+
+function saveNutrition(){
+  S.nutrition[today()]={cal:document.getElementById('nut-cal').value,prot:document.getElementById('nut-prot').value,carb:document.getElementById('nut-carb').value,fat:document.getElementById('nut-fat').value};
+  saveS();
+  const el=document.getElementById('nut-saved');
+  el.style.display='flex'; setTimeout(()=>el.style.display='none',2000);
+  renderNutritionToday();
+}
+
+// ─── RECOVERY TAB ─────────────────────────────────────────────────
+let equipment={gun:true, roller:true, stretch:true, ice:false};
+let sessionIntensity='moderate';
+
+function toggleEquip(id){
+  equipment[id]=!equipment[id];
+  const btn=document.getElementById('eq-'+id);
+  btn.classList.toggle('active',equipment[id]);
+}
+
+function setIntensity(val){
+  sessionIntensity=val;
+  ['light','moderate','hard'].forEach(i=>{
+    document.getElementById('int-'+i).classList.toggle('active',i===val);
+  });
+}
+
+function buildRecoveryContext(){
+  const musclesDone=MUSCLES.filter(m=>S.musclesDone[m.id]).map(m=>m.label);
+  const soreness=SORENESS_MUSCLES.map(m=>`${m}: ${S.soreness[m]||1}/10`).join(', ');
+  const checkin=S.checkin;
+  const recentRun=S.weeklyRuns&&S.weeklyRuns.length>0;
+  const lines=[];
+  if(musclesDone.length) lines.push(`Muscles trained today: ${musclesDone.join(', ')}`);
+  else lines.push('Muscles trained today: none logged yet');
+  if(recentRun) lines.push('Also ran this week');
+  lines.push(`Session intensity: ${sessionIntensity}`);
+  if(checkin){
+    lines.push(`Sleep: ${checkin.sleep}h`);
+    lines.push(`Energy: ${checkin.energy}/10`);
+    lines.push(`Overall soreness: ${checkin.soreness}/10`);
+    if(checkin.hrv) lines.push(`HRV: ${checkin.hrv}ms`);
+  }
+  lines.push(`Muscle soreness — ${soreness}`);
+  lines.push(`Equipment: ${Object.entries(equipment).filter(([k,v])=>v).map(([k])=>k==='gun'?'massage gun':k==='roller'?'foam roller':k).join(', ')}`);
+  return lines;
+}
+
+function renderRecoveryContext(){
+  const lines=buildRecoveryContext();
+  document.getElementById('rec-context-body').innerHTML=lines.map(l=>`<div>• ${l}</div>`).join('');
+}
+
+async function generateProtocol(){
+  const context=buildRecoveryContext();
+  const musclesDone=MUSCLES.filter(m=>S.musclesDone[m.id]).map(m=>m.label);
+  const equip=Object.entries(equipment).filter(([k,v])=>v).map(([k])=>k==='gun'?'massage gun':k==='roller'?'foam roller':k).join(', ');
+
+  document.getElementById('protocol-output').style.display='block';
+  document.getElementById('protocol-loading').style.display='flex';
+  document.getElementById('protocol-content').innerHTML='';
+  document.getElementById('protocol-time').textContent='—';
+  document.getElementById('protocol-note').textContent='';
+  document.getElementById('gen-protocol-btn').disabled=true;
+  document.getElementById('gen-protocol-btn').textContent='generating...';
+
+  const prompt=`You are a sports recovery expert and personal trainer. Generate a specific post-workout recovery protocol for this athlete.
+
+Context:
+${context.join('\n')}
+
+Generate a step-by-step recovery protocol. For each step specify:
+- Which tool to use (${equip})
+- Exact muscle(s) to target
+- How long (in minutes/seconds)
+- Specific technique tips
+
+Format your response as JSON only, no markdown, no explanation, just this exact structure:
+{
+  "steps": [
+    {
+      "tool": "massage gun|foam roller|stretch|ice",
+      "muscle": "muscle name",
+      "duration": "2 min each side",
+      "instruction": "specific technique instruction",
+      "tip": "one key tip"
+    }
+  ],
+  "total_minutes": 15,
+  "closing_note": "one sentence about timing or priority for this session"
+}
+
+Only include tools the athlete has: ${equip}. Order steps optimally (typically: massage gun first to break up tension, then roller to flush, then stretches to lengthen). Be specific to the muscles they trained. If soreness is high (7+) on a muscle, prioritize it.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await res.json();
+    const raw=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    renderProtocol(parsed);
+  } catch(e){
+    document.getElementById('protocol-content').innerHTML='<div style="font-size:13px;color:var(--red);padding:8px 0;">Error generating protocol. Please try again.</div>';
+  } finally {
+    document.getElementById('protocol-loading').style.display='none';
+    document.getElementById('gen-protocol-btn').disabled=false;
+    document.getElementById('gen-protocol-btn').textContent='regenerate protocol';
+  }
+}
+
+function renderProtocol(data){
+  const toolIcons={
+    'massage gun':{icon:'ti-device-gamepad-2',color:'var(--accent)',bg:'rgba(200,240,96,0.08)'},
+    'foam roller':{icon:'ti-circle',color:'var(--blue)',bg:'rgba(90,180,255,0.08)'},
+    'stretch':{icon:'ti-yoga',color:'var(--teal)',bg:'rgba(61,255,208,0.08)'},
+    'ice':{icon:'ti-snowflake',color:'var(--blue)',bg:'rgba(90,180,255,0.12)'},
+  };
+  const el=document.getElementById('protocol-content');
+  el.innerHTML=data.steps.map((s,i)=>{
+    const t=toolIcons[s.tool]||toolIcons['stretch'];
+    return `<div class="protocol-step">
+      <div class="protocol-step-header">
+        <div class="protocol-step-icon" style="background:${t.bg};border:1px solid ${t.color}20;">
+          <i class="ti ${t.icon}" style="color:${t.color};"></i>
+        </div>
+        <div>
+          <div class="protocol-step-title">${s.muscle}</div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;">${s.tool}</div>
+        </div>
+        <div class="protocol-step-time">${s.duration}</div>
+      </div>
+      <div class="protocol-step-body">
+        <div style="margin-bottom:4px;">${s.instruction}</div>
+        ${s.tip?`<div style="color:var(--accent);font-size:11px;">💡 ${s.tip}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('protocol-time').textContent=data.total_minutes||'—';
+  if(data.closing_note) document.getElementById('protocol-note').textContent=data.closing_note;
+}
+
+
+function enableNotifications(){
+  if(!('Notification' in window)){ alert('Notifications not supported in this browser.'); return; }
+  Notification.requestPermission().then(p=>{
+    if(p==='granted'){
+      document.getElementById('notif-section').innerHTML='<div class="alert alert-green" style="margin:0;width:100%;"><i class="ti ti-check"></i> Daily reminders enabled!</div>';
+      scheduleDailyReminder();
+    }
+  });
+}
+
+function scheduleDailyReminder(){
+  // Show reminder if check-in not done today
+  const lastCheckin=S.checkinDoneDate;
+  if(lastCheckin!==today() && Notification.permission==='granted'){
+    setTimeout(()=>{
+      new Notification('Recovery Coach 💪',{body:'Time to log your daily check-in and see your recovery score!',icon:'/favicon.ico'});
+    }, 3000);
+  }
+}
+
+// ─── AI ──────────────────────────────────────────────────────────
+function askCoach(){
+  const score=document.getElementById('score-num').textContent;
+  const due=MUSCLES.filter(m=>!S.musclesDone[m.id]).map(m=>`${m.label} (${m.daysSince}d)`).join(', ');
+  const hrv=S.checkin?.hrv;
+  const nut=S.nutrition[today()];
+  window.parent.postMessage({type:'send_message',message:`My recovery score is ${score}/100. Overdue muscle groups: ${due||'none'}. Sleep: ${document.getElementById('sl-sleep').value}/10, energy: ${document.getElementById('sl-energy').value}/10, soreness: ${document.getElementById('sl-soreness').value}/10.${hrv?` HRV: ${hrv}ms.`:''}${nut?` Today's nutrition: ${nut.cal} kcal, ${nut.prot}g protein.`:''} PRs: bench 175lbs, weighted pull-up +25lbs, hack squat 265lbs. What should I do today to maximize recovery and training progress?`},'*');
+}
+
+function deepInsight(){
+  window.parent.postMessage({type:'send_message',message:`Analyze my full training data: lift 4-5x/week (chest, back, shoulders/arms, abs — legs neglected 31 days), run 1-2x/week zone 2 and zone 3, daily yoga goal. Bench PR 175lbs, weighted pull-up +25lbs, hack squat 265lbs. Goals: bench 185lbs, build running split, fix leg imbalance. Give me a detailed 4-week periodization plan.`},'*');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+function init(){
+  loadS();
+
+  // Handle Strava OAuth callback
+  const params=new URLSearchParams(window.location.search);
+  const code=params.get('code');
+  if(code){
+    showPage('settings',document.querySelectorAll('.nav-btn')[4]);
+    setTimeout(()=>exchangeCode(code),300);
+  }
+
+  // Date
+  document.getElementById('date-display').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
+
+  // Render all
+  renderMuscleGrid('muscle-grid');
+  renderMuscleGrid('muscle-grid-quick');
+  renderSoreness(); renderYoga(); renderWeekBar();
+  renderPRs(); renderHevySessions();
+  renderRecoveryTimers(); renderRunSplit();
+  checkLegsAlert();
+
+  // Restore check-in state — only if done TODAY
+  if(S.checkinDoneDate===today()){
+    document.getElementById('checkin-form-state').style.display='none';
+    document.getElementById('checkin-done-state').style.display='block';
+    if(S.checkin){
+      ['sleep','energy','soreness','stress'].forEach(k=>{
+        const el=document.getElementById('sl-'+k); if(el) el.value=S.checkin[k];
+        const sv=document.getElementById('sv-'+k); if(sv) sv.textContent=k==='sleep'?S.checkin[k]+'h':S.checkin[k];
+      });
+      updateSleepDisplay(S.checkin.sleep);
+      if(S.checkin.hrv) document.getElementById('inp-hrv').value=S.checkin.hrv;
+      if(S.checkin.rhr) document.getElementById('inp-rhr').value=S.checkin.rhr;
+      recalcScore();
+    }
+  }
+
+  renderQuickStats();
+
+  // Strava status
+  if(S.stravaConnected){
+    document.getElementById('sv-dot').className='sdot sdot-green';
+    document.getElementById('sv-text').textContent='Connected';
+    if(S.stravaRefreshToken) document.getElementById('s-rt').value=S.stravaRefreshToken;
+  }
+
+  // Notification check
+  if(Notification.permission==='granted') scheduleDailyReminder();
+}
+
+init();
+</script>
+</body>
+</html>
